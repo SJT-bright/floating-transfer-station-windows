@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using FloatingTransferStation.Models;
 using FloatingTransferStation.Services;
 
@@ -25,18 +26,26 @@ public sealed class MainWindowViewModel : ObservableObject
         DefaultCaptureCategoryState? defaultCaptureCategory = null)
     {
         _defaultCaptureCategory = defaultCaptureCategory ?? new DefaultCaptureCategoryState();
-        Categories = BoardCategoryCatalog.Ordered
+        foreach (var category in settings.CategoryNames?.Keys.AsEnumerable() ?? Enumerable.Empty<BoardCategory>())
+        {
+            if (BoardCategoryCatalog.IsDefined(category))
+            {
+                board.EnsureCategory(category);
+            }
+        }
+
+        Categories = new ObservableCollection<CategoryViewModel>(board.Categories
             .Select(category => new CategoryViewModel(
                 category,
                 board.Items(category),
                 settings.CategoryName(category)))
-            .ToArray();
+            .ToArray());
         _defaultCapturePanel = Categories.Single(
             category => category.Category == _defaultCaptureCategory.Current);
         _defaultCapturePanel.IsDefaultCapture = true;
     }
 
-    public IReadOnlyList<CategoryViewModel> Categories { get; }
+    public ObservableCollection<CategoryViewModel> Categories { get; }
 
     public CategoryViewModel DefaultCapturePanel
     {

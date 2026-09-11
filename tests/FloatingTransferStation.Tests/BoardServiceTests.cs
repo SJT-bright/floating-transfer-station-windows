@@ -14,7 +14,7 @@ public sealed class BoardServiceTests
         Assert.IsNotNull(displayNameField);
         Assert.AreEqual("悬浮中转站", displayNameField.GetValue(null));
         CollectionAssert.AreEqual(
-            new[] { "客户原图", "对标图", "提示词", "待分类" },
+            new[] { "人物资产", "场景", "提示词", "待分类" },
             BoardCategoryCatalog.Ordered.Select(BoardCategoryCatalog.DisplayName).ToArray());
     }
 
@@ -26,8 +26,8 @@ public sealed class BoardServiceTests
         settings = settings.WithCategoryName(BoardCategory.CustomerOriginal, string.Empty);
         Assert.AreEqual(string.Empty, settings.CategoryName(BoardCategory.CustomerOriginal));
 
-        settings = settings.WithCategoryName(BoardCategory.CustomerOriginal, "客户原图六");
-        Assert.AreEqual("客户原图六", settings.CategoryName(BoardCategory.CustomerOriginal));
+        settings = settings.WithCategoryName(BoardCategory.CustomerOriginal, "人物资产六");
+        Assert.AreEqual("人物资产六", settings.CategoryName(BoardCategory.CustomerOriginal));
     }
 
     [TestMethod]

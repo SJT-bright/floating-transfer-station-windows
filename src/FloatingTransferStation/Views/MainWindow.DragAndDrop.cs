@@ -234,6 +234,18 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private ExternalDropPayload.ImageFiles? GetCategoryImageCopyPayload(
+        IReadOnlyList<Guid> itemIds, BoardCategory target)
+    {
+        var ids = itemIds.ToHashSet();
+        var items = _viewModel.Categories.SelectMany(category => category.Items)
+            .Where(item => ids.Contains(item.Id)).ToArray();
+        return items.Length == ids.Count && items.Length > 0 &&
+               items.All(item => item.Category != target && item.ImageAbsolutePath is not null)
+            ? new ExternalDropPayload.ImageFiles(items.Select(item => item.ImageAbsolutePath!).ToArray())
+            : null;
+    }
+
     private void UpdateCategoryDropTarget(object sender, DragEventArgs e)
     {
         HideInsertionIndicator();
@@ -249,7 +261,9 @@ public partial class MainWindow : Window
             }
 
             SetCategoryDropTarget(category);
-            e.Effects = DragDropEffects.Move;
+            e.Effects = GetCategoryImageCopyPayload(itemIds, category.Category) is not null
+                ? DragDropEffects.Copy
+                : DragDropEffects.Move;
             e.Handled = true;
             return;
         }
@@ -359,6 +373,16 @@ public partial class MainWindow : Window
         {
             ClearExternalDragPayload();
             HideExternalDropRail();
+            if (GetCategoryImageCopyPayload(itemIds, category.Category) is { } imageCopy)
+            {
+                e.Effects = DragDropEffects.Copy;
+                var copy = ImportExternalDropSafelyAsync(
+                    imageCopy, category.Category, _windowOperationCancellation.Token);
+                TrackPendingOperation(copy);
+                await copy;
+                return;
+            }
+
             if (!_board.CanMoveManyToCategoryTop(itemIds, category.Category))
             {
                 return;

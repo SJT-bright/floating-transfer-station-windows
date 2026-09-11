@@ -51,7 +51,23 @@ public sealed class BoardService
             category => category,
             _ => new ObservableCollection<BoardItem>());
 
-    public ObservableCollection<BoardItem> Items(BoardCategory category) => _items[category];
+    public IReadOnlyList<BoardCategory> Categories => _items.Keys.ToArray();
+
+    public void EnsureCategory(BoardCategory category)
+    {
+        if (!BoardCategoryCatalog.IsDefined(category))
+        {
+            throw new ArgumentOutOfRangeException(nameof(category));
+        }
+
+        _items.TryAdd(category, new ObservableCollection<BoardItem>());
+    }
+
+    public ObservableCollection<BoardItem> Items(BoardCategory category)
+    {
+        EnsureCategory(category);
+        return _items[category];
+    }
 
     public BoardItem AddText(string text, Guid? id = null, DateTimeOffset? createdAt = null) =>
         AddText(text, BoardCategory.Inbox, id, createdAt);
@@ -366,7 +382,7 @@ public sealed class BoardService
 
     public RemovedBoardItem? Remove(Guid itemId)
     {
-        foreach (var category in BoardCategoryCatalog.Ordered)
+        foreach (var category in _items.Keys)
         {
             var collection = _items[category];
             var index = IndexOf(collection, itemId);
@@ -401,7 +417,7 @@ public sealed class BoardService
         }
 
         var selected = itemIds.ToHashSet();
-        var originals = BoardCategoryCatalog.Ordered
+        var originals = _items.Keys
             .Where(category => _items[category].Any(item => selected.Contains(item.Id)))
             .ToDictionary(
                 category => category,
@@ -466,12 +482,17 @@ public sealed class BoardService
 
     public void Restore(BoardSnapshot snapshot)
     {
+        foreach (var category in snapshot.Items.Select(item => item.Category).Distinct())
+        {
+            EnsureCategory(category);
+        }
+
         foreach (var collection in _items.Values)
         {
             collection.Clear();
         }
 
-        foreach (var category in BoardCategoryCatalog.Ordered)
+        foreach (var category in _items.Keys)
         {
             foreach (var item in snapshot.Items
                          .Where(item => item.Category == category)
@@ -488,7 +509,7 @@ public sealed class BoardService
 
     public BoardSnapshot CreateSnapshot() => new()
     {
-        Items = BoardCategoryCatalog.Ordered
+        Items = _items.Keys
             .SelectMany(category => _items[category])
             .Select(item => item.CloneForSnapshot())
             .ToList()
@@ -496,6 +517,7 @@ public sealed class BoardService
 
     private void InsertAtTop(BoardItem item, BoardCategory category)
     {
+        EnsureCategory(category);
         if (!BoardCategoryCatalog.IsDefined(category))
         {
             throw new ArgumentOutOfRangeException(nameof(category));
@@ -518,7 +540,7 @@ public sealed class BoardService
         }
 
         var selectedIds = itemIds.ToHashSet();
-        var matches = BoardCategoryCatalog.Ordered
+        var matches = _items.Keys
             .Select(category => (
                 Category: category,
                 Items: _items[category]
@@ -564,7 +586,7 @@ public sealed class BoardService
 
     private (BoardItem Item, BoardCategory Category, int Index) Find(Guid itemId)
     {
-        foreach (var category in BoardCategoryCatalog.Ordered)
+        foreach (var category in _items.Keys)
         {
             var collection = _items[category];
             var index = IndexOf(collection, itemId);

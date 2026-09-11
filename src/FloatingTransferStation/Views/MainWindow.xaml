@@ -286,15 +286,26 @@
             </Style.Triggers>
           </Style>
         </Border.Style>
+        <DockPanel>
+          <Button DockPanel.Dock="Top" Content="+" Height="28" FontSize="20"
+                  ToolTip="添加类别（双击名称可改名）" Click="AddCategory_Click" />
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <ItemsControl ItemsSource="{Binding Categories}"
                       ItemTemplate="{StaticResource CategoryTabTemplate}"
                       Background="Transparent">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <UniformGrid Rows="4" Columns="1" />
+              <StackPanel />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemContainerStyle>
+            <Style TargetType="ContentPresenter">
+              <Setter Property="Height" Value="128" />
+            </Style>
+          </ItemsControl.ItemContainerStyle>
         </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
       </Border>
 
       <ContentControl x:Name="CollapsedCategoryHandle"

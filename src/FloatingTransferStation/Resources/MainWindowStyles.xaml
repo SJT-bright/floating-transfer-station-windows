@@ -3,21 +3,21 @@
                     xmlns:converters="clr-namespace:FloatingTransferStation.Converters"
                     xmlns:models="clr-namespace:FloatingTransferStation.Models"
                     xmlns:views="clr-namespace:FloatingTransferStation.Views">
-  <SolidColorBrush x:Key="WindowShellBrush" Color="#F7F8FA" />
-  <SolidColorBrush x:Key="TabRailBrush" Color="#EFF1F4" />
-  <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="WindowShellBrush" Color="#C4F7F8FA" />
+  <SolidColorBrush x:Key="TabRailBrush" Color="#66EFF1F4" />
+  <SolidColorBrush x:Key="CardBrush" Color="#80FFFFFF" />
   <SolidColorBrush x:Key="BorderBrush" Color="#E2E5EA" />
   <SolidColorBrush x:Key="PrimaryTextBrush" Color="#1D1D1F" />
   <SolidColorBrush x:Key="SecondaryTextBrush" Color="#5F6368" />
-  <SolidColorBrush x:Key="AccentBrush" Color="#6D5DFB" />
+  <SolidColorBrush x:Key="AccentBrush" Color="#007AFF" />
   <SolidColorBrush x:Key="DangerBrush" Color="#D92D20" />
-  <SolidColorBrush x:Key="HeaderBrush" Color="#FBFBFC" />
+  <SolidColorBrush x:Key="HeaderBrush" Color="#66FBFBFC" />
   <SolidColorBrush x:Key="HoverSurfaceBrush" Color="#F4F5F7" />
   <SolidColorBrush x:Key="HoverBorderBrush" Color="#C9CDD5" />
   <SolidColorBrush x:Key="SelectedCardBrush" Color="#F3F1FF" />
   <SolidColorBrush x:Key="SelectedCardBorderBrush" Color="#8B7CF6" />
-  <SolidColorBrush x:Key="ActiveCategoryBrush" Color="#E7E4FF" />
-  <SolidColorBrush x:Key="DropTargetBrush" Color="#EAE7FF" />
+  <SolidColorBrush x:Key="ActiveCategoryBrush" Color="#668EC5FF" />
+  <SolidColorBrush x:Key="DropTargetBrush" Color="#AA8EC5FF" />
   <SolidColorBrush x:Key="DangerHoverBrush" Color="#FEECEB" />
   <SolidColorBrush x:Key="DangerPressedBrush" Color="#FDD8D5" />
   <SolidColorBrush x:Key="ScrollThumbBrush" Color="#B8BDC7" />

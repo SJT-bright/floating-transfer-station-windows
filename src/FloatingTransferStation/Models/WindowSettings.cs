@@ -41,7 +41,10 @@ public sealed record WindowSettings(
                 nameof(name));
         }
 
-        var names = BoardCategoryCatalog.Ordered.ToDictionary(
+        var names = BoardCategoryCatalog.Ordered
+            .Concat(CategoryNames?.Keys.AsEnumerable() ?? Enumerable.Empty<BoardCategory>())
+            .Where(BoardCategoryCatalog.IsDefined)
+            .Distinct().ToDictionary(
             current => current,
             CategoryName);
         names[category] = name;

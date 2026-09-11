@@ -23,6 +23,66 @@ namespace FloatingTransferStation.Tests;
 public sealed class MainWindowInteractionTests
 {
     [STATestMethod]
+    public void WindowsPort_ImageDropCopiesAndRendersCustomCategory()
+    {
+        using var directory = new TestDirectory();
+        var source = Path.Combine(directory.Root, "source.png");
+        WritePng(source, 160, 100);
+        var board = new BoardService();
+        var original = board.AddImage(Guid.NewGuid(), "source.png", source);
+        board.AddText("复制自动收集到待分类；拖到其他类别保留独立副本。");
+        var custom = (BoardCategory)1000;
+        var store = new RecordingBoardStore(directory.Root);
+        var window = CreateWindow(board, store, WindowSettings.Default.WithCategoryName(custom, "道具"));
+        try
+        {
+            window.Show();
+            ExpandCategory(window, BoardCategory.Inbox);
+            CompleteLayout(window);
+            var vm = (MainWindowViewModel)window.DataContext;
+            var target = vm.Categories.Single(category => category.Category == custom);
+            var tab = FindCategoryTab(window, target);
+            var data = new DataObject();
+            data.SetData(DragPayloadService.InternalItemIdFormat, original.Id.ToString("D"));
+            var over = NewDragEventArgs(data, DragDrop.DragOverEvent, tab);
+            tab.RaiseEvent(over);
+            Assert.AreEqual(DragDropEffects.Copy, over.Effects);
+            Assert.IsTrue(target.IsDropTarget);
+            var drop = NewDragEventArgs(data, DragDrop.DropEvent, tab);
+            tab.RaiseEvent(drop);
+            PumpDispatcherUntil(window.Dispatcher, store.SaveCompleted.Task);
+            Assert.AreEqual(DragDropEffects.Copy, drop.Effects);
+            var copy = board.Items(custom).Single();
+            Assert.AreNotEqual(original.Id, copy.Id);
+            Assert.AreNotEqual(original.ImageAbsolutePath, copy.ImageAbsolutePath);
+            Assert.IsTrue(File.Exists(copy.ImageAbsolutePath));
+            Assert.IsTrue(board.Items(BoardCategory.Inbox).Contains(original));
+            Assert.AreEqual(3, board.CreateSnapshot().Items.Count);
+
+            var output = Environment.GetEnvironmentVariable("FTS_UI_ARTIFACTS");
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                ExpandCategory(window, BoardCategory.Inbox);
+                PumpDispatcherFor(window.Dispatcher, TimeSpan.FromMilliseconds(300));
+                CompleteLayout(window);
+                var root = (FrameworkElement)window.Content;
+                var bitmap = new RenderTargetBitmap((int)Math.Ceiling(root.ActualWidth),
+                    (int)Math.Ceiling(root.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(root);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                Directory.CreateDirectory(output);
+                using var file = File.Create(Path.Combine(output, "windows-ui.png"));
+                encoder.Save(file);
+            }
+        }
+        finally
+        {
+            CloseWindow(window);
+        }
+    }
+
+    [STATestMethod]
     public void WindowResources_AreScopedToTheLightShellAndRail()
     {
         using var directory = new TestDirectory();
@@ -43,9 +103,9 @@ public sealed class MainWindowInteractionTests
             var shell = window.FindName("WindowShell") as Border;
             var rail = window.FindName("CategoryRail") as Border;
 
-            Assert.AreEqual(Color.FromRgb(0xF7, 0xF8, 0xFA), shellBrush.Color);
-            Assert.AreEqual(Color.FromRgb(0xEF, 0xF1, 0xF4), railBrush.Color);
-            Assert.AreEqual(Colors.White, cardBrush.Color);
+            Assert.AreEqual(Color.FromArgb(0xC4, 0xF7, 0xF8, 0xFA), shellBrush.Color);
+            Assert.AreEqual(Color.FromArgb(0x66, 0xEF, 0xF1, 0xF4), railBrush.Color);
+            Assert.AreEqual(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF), cardBrush.Color);
             Assert.IsNotNull(shell);
             Assert.IsNotNull(rail);
             Assert.AreSame(shellBrush, shell.Background);
@@ -215,7 +275,7 @@ public sealed class MainWindowInteractionTests
     }
 
     [STATestMethod]
-    public void CategoryTab_MouseClickSwitchesOnlyTheDefaultCaptureMarker()
+    public void CategoryTab_MouseClickKeepsAutomaticCaptureInInbox()
     {
         using var directory = new TestDirectory();
         var state = new DefaultCaptureCategoryState();
@@ -236,10 +296,10 @@ public sealed class MainWindowInteractionTests
                 customerTab));
             CompleteLayout(window);
 
-            Assert.AreEqual(BoardCategory.CustomerOriginal, state.Current);
+            Assert.AreEqual(BoardCategory.Inbox, state.Current);
             Assert.AreEqual(BoardCategory.Reference, viewModel.ActivePanel!.Category);
             Assert.AreEqual(1, viewModel.Categories.Count(category => category.IsDefaultCapture));
-            Assert.AreSame(customer, viewModel.DefaultCapturePanel);
+            Assert.AreEqual(BoardCategory.Inbox, viewModel.DefaultCapturePanel.Category);
 
             var markerStyle = (Style)window.FindResource("CategoryDefaultMarkerStyle");
             foreach (var category in viewModel.Categories)
@@ -350,7 +410,7 @@ public sealed class MainWindowInteractionTests
 
             InvokePrivateTask(window, "SaveCategoryNameAsync", customer, "客户");
 
-            Assert.AreEqual("客户原图", customer.DisplayName);
+            Assert.AreEqual("人物资产", customer.DisplayName);
             Assert.AreEqual("分类名称未保存，已恢复原名称。", viewModel.StatusText);
             Assert.IsTrue(customer.IsDefaultCapture);
             Assert.AreEqual(BoardCategory.CustomerOriginal, state.Current);
@@ -397,7 +457,7 @@ public sealed class MainWindowInteractionTests
 
             Assert.IsTrue(viewModel.IsPanelExpanded);
             Assert.IsTrue(customer.IsEditingName);
-            Assert.AreEqual("客户原图", customer.DisplayName);
+            Assert.AreEqual("人物资产", customer.DisplayName);
             Assert.AreEqual("T", customer.DraftName);
             Assert.IsNull(store.LastSavedSettings);
         }
@@ -439,7 +499,7 @@ public sealed class MainWindowInteractionTests
             editor.CaretIndex = editor.Text.Length;
             CompleteLayout(window);
 
-            Assert.AreEqual("客户原图", customer.DraftName);
+            Assert.AreEqual("人物资产", customer.DraftName);
             Assert.AreEqual(editor.Text.Length, editor.CaretIndex);
 
             InvokePrivate(window, "CommitCategoryNameEdit", customer, editor.Text);
@@ -545,7 +605,7 @@ public sealed class MainWindowInteractionTests
 
             Assert.IsFalse(enter.Handled);
             Assert.IsTrue(customer.IsEditingName);
-            Assert.AreEqual("客户原图", customer.DisplayName);
+            Assert.AreEqual("人物资产", customer.DisplayName);
             Assert.IsNull(store.LastSavedSettings);
         }
         finally

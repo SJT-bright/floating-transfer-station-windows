@@ -26,23 +26,24 @@ public static class BoardCategoryCatalog
     public static IReadOnlyDictionary<BoardCategory, string> DefaultNames { get; } =
         new Dictionary<BoardCategory, string>
         {
-            [BoardCategory.CustomerOriginal] = "客户原图",
-            [BoardCategory.Reference] = "对标图",
+            [BoardCategory.CustomerOriginal] = "人物资产",
+            [BoardCategory.Reference] = "场景",
             [BoardCategory.Prompt] = "提示词",
             [BoardCategory.Inbox] = "待分类"
         };
 
     public static string DisplayName(BoardCategory category) => category switch
     {
-        BoardCategory.CustomerOriginal => "客户原图",
-        BoardCategory.Reference => "对标图",
+        BoardCategory.CustomerOriginal => "人物资产",
+        BoardCategory.Reference => "场景",
         BoardCategory.Prompt => "提示词",
         BoardCategory.Inbox => "待分类",
+        _ when (int)category >= 1000 => "自定义",
         _ => throw new ArgumentOutOfRangeException(nameof(category), category, null)
     };
 
     public static bool IsDefined(BoardCategory category) =>
-        category is >= BoardCategory.CustomerOriginal and <= BoardCategory.Inbox;
+        category is >= BoardCategory.CustomerOriginal and <= BoardCategory.Inbox || (int)category >= 1000;
 
     public static bool IsValidDisplayName(string? name) =>
         name is not null &&

@@ -126,8 +126,38 @@ public partial class MainWindow : Window
             return;
         }
 
-        _viewModel.SetDefaultCaptureCategory(category.Category);
+        // Viewing a category must never redirect automatic clipboard capture from Inbox.
         e.Handled = true;
+    }
+
+    private async void AddCategory_Click(object sender, RoutedEventArgs e)
+    {
+        await _settingsSaveGate.WaitAsync();
+        try
+        {
+            var lastId = _board.Categories.Select(category => (int)category).DefaultIfEmpty(999).Max();
+            if (lastId == int.MaxValue)
+            {
+                ShowStatus("类别数量已达上限");
+                return;
+            }
+
+            var category = (BoardCategory)Math.Max(1000, lastId + 1);
+            var next = _settings.WithCategoryName(category, "新分类");
+            await _store.SaveSettingsAsync(next);
+            _settings = next;
+            var panel = new CategoryViewModel(category, _board.Items(category), "新分类");
+            _viewModel.Categories.Add(panel);
+            ShowStatus("已添加新分类，双击名称可修改");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            ShowStatus("类别保存失败，请重试");
+        }
+        finally
+        {
+            _settingsSaveGate.Release();
+        }
     }
 
     private void CategoryTab_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

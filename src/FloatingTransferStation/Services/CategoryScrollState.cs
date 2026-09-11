@@ -17,7 +17,7 @@ public sealed class CategoryScrollState
     {
         Validate(category);
         var height = Normalize(scrollableHeight);
-        return height <= 0 ? 0 : Math.Min(_offsets[category], height);
+        return height <= 0 ? 0 : Math.Min(_offsets.GetValueOrDefault(category), height);
     }
 
     private static double Normalize(double value) =>
