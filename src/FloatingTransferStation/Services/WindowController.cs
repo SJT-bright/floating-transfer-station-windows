@@ -24,7 +24,8 @@ public static class WindowController
         var normalized = settings.Normalize(workArea.Width, workArea.Height);
         var rowHeight = normalized.WindowHeight / BoardCategoryCatalog.Ordered.Count;
         var rowIndex = 0;
-        while (BoardCategoryCatalog.Ordered[rowIndex] != defaultCategory)
+        while (rowIndex < BoardCategoryCatalog.Ordered.Count - 1 &&
+               BoardCategoryCatalog.Ordered[rowIndex] != defaultCategory)
         {
             rowIndex++;
         }

@@ -130,7 +130,15 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private async void AddCategory_Click(object sender, RoutedEventArgs e)
+    private void AddCategory_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_isClosing)
+        {
+            TrackPendingOperation(AddCategoryAsync());
+        }
+    }
+
+    private async Task AddCategoryAsync()
     {
         await _settingsSaveGate.WaitAsync();
         try

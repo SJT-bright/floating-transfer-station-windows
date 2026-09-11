@@ -60,7 +60,10 @@ public sealed class BoardService
             throw new ArgumentOutOfRangeException(nameof(category));
         }
 
-        _items.TryAdd(category, new ObservableCollection<BoardItem>());
+        if (!_items.ContainsKey(category))
+        {
+            _items.Add(category, new ObservableCollection<BoardItem>());
+        }
     }
 
     public ObservableCollection<BoardItem> Items(BoardCategory category)

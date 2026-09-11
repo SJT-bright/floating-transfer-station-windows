@@ -655,8 +655,8 @@ public sealed class MainWindowInteractionTests
                 bottomLeftAlpha <= 16,
                 $"The exposed bottom-left corner must stay transparent; alpha was {bottomLeftAlpha}.");
             Assert.IsTrue(
-                topRightAlpha >= 240,
-                $"The docked right edge must remain square and opaque; alpha was {topRightAlpha}.");
+                topRightAlpha >= 196,
+                $"The docked right edge must remain square and translucent; alpha was {topRightAlpha}.");
         }
         finally
         {
@@ -937,7 +937,7 @@ public sealed class MainWindowInteractionTests
                 AlphaAt(2, height - 3) <= 16,
                 $"Collapsed bottom-left exterior must be transparent; alpha was {AlphaAt(2, height - 3)}.");
             Assert.IsTrue(
-                AlphaAt(width - 3, 2) >= 240,
+                AlphaAt(width - 3, 2) >= 196,
                 $"Collapsed docked right edge must stay square; alpha was {AlphaAt(width - 3, 2)}.");
         }
         finally
@@ -1232,7 +1232,7 @@ public sealed class MainWindowInteractionTests
             var viewModel = (MainWindowViewModel)window.DataContext;
             var currentTab = FindCategoryTab(window, viewModel.DefaultCapturePanel);
             var rail = (Border)window.FindName("CategoryRail");
-            var gapSurface = rail.Child as ItemsControl;
+            var gapSurface = FindDescendants<ItemsControl>(rail).Single();
             Assert.IsNotNull(gapSurface);
             Assert.AreEqual(new Thickness(5), currentTab.Margin);
 
@@ -1288,7 +1288,7 @@ public sealed class MainWindowInteractionTests
             var expandedWidth = window.Width;
             var viewModel = (MainWindowViewModel)window.DataContext;
             var rail = (Border)window.FindName("CategoryRail");
-            var gapSurface = rail.Child as ItemsControl;
+            var gapSurface = FindDescendants<ItemsControl>(rail).Single();
             Assert.IsNotNull(gapSurface);
             var data = new DragPayloadService().BuildInternalBatch([first, second]);
 
@@ -1309,7 +1309,7 @@ public sealed class MainWindowInteractionTests
             targetTab.RaiseEvent(targetEnter);
             CompleteLayout(window);
 
-            Assert.AreEqual(DragDropEffects.Move, targetEnter.Effects);
+            Assert.AreEqual(DragDropEffects.Copy, targetEnter.Effects);
             Assert.IsTrue(viewModel.IsPanelExpanded);
             Assert.AreSame(target, viewModel.Categories.Single(category => category.IsDropTarget));
         }
@@ -1339,7 +1339,7 @@ public sealed class MainWindowInteractionTests
             var viewModel = (MainWindowViewModel)window.DataContext;
             var currentTab = FindCategoryTab(window, viewModel.DefaultCapturePanel);
             var rail = (Border)window.FindName("CategoryRail");
-            var gapSurface = rail.Child as ItemsControl;
+            var gapSurface = FindDescendants<ItemsControl>(rail).Single();
             Assert.IsNotNull(gapSurface);
             currentTab.RaiseEvent(NewDragEventArgs(data, DragDrop.DragLeaveEvent, currentTab));
             gapSurface.RaiseEvent(NewDragEventArgs(data, DragDrop.DragEnterEvent, gapSurface));

@@ -30,6 +30,7 @@
   <CornerRadius x:Key="PinButtonCornerRadius">6</CornerRadius>
   <CornerRadius x:Key="SelectedCountBadgeCornerRadius">7</CornerRadius>
   <converters:ImageThumbnailConverter x:Key="ImageThumbnailConverter" />
+  <converters:CategoryRowHeightConverter x:Key="CategoryRowHeightConverter" />
 
   <ControlTemplate x:Key="TransparentThumbTemplate" TargetType="Thumb">
     <Border Background="{TemplateBinding Background}" />
