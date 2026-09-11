@@ -28,6 +28,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Force artifacts/evidence | Out-Null
           git diff --output=artifacts/evidence/format.patch
+          git diff --exit-code
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet format FloatingTransferStation.slnx --verify-no-changes --no-restore
       - name: Strict build
         run: dotnet build FloatingTransferStation.slnx -c Release --no-restore -warnaserror
       - name: Windows regression and rendered UI

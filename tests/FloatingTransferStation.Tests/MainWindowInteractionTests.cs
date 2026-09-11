@@ -23,6 +23,39 @@ namespace FloatingTransferStation.Tests;
 public sealed class MainWindowInteractionTests
 {
     [STATestMethod]
+    public void WindowsPort_AddCategoryPersistsAndReopenResetsRailScroll()
+    {
+        using var directory = new TestDirectory();
+        var store = new RecordingBoardStore(directory.Root);
+        var window = CreateWindow(new BoardService(), store, WindowSettings.Default);
+        try
+        {
+            window.Show();
+            ExpandCategory(window, BoardCategory.Inbox);
+            InvokePrivateTask(window, "AddCategoryAsync");
+            var vm = (MainWindowViewModel)window.DataContext;
+            Assert.AreEqual(5, vm.Categories.Count);
+            Assert.AreEqual("新分类", store.LastSavedSettings!.CategoryName((BoardCategory)1000));
+            var scroll = (ScrollViewer)window.FindName("CategoryRailScroll");
+            CompleteLayout(window);
+            scroll.ScrollToBottom();
+            CompleteLayout(window);
+            Assert.IsTrue(scroll.VerticalOffset > 0);
+            var state = GetPrivateField<PanelStateMachine>(window, "_panelState");
+            state.LeaveSurface();
+            InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
+            CompleteLayout(window);
+            ExpandCategory(window, BoardCategory.Inbox);
+            CompleteLayout(window);
+            Assert.AreEqual(0d, scroll.VerticalOffset);
+        }
+        finally
+        {
+            CloseWindow(window);
+        }
+    }
+
+    [STATestMethod]
     public void WindowsPort_ImageDropCopiesAndRendersCustomCategory()
     {
         using var directory = new TestDirectory();

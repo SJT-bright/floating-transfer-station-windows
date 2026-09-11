@@ -329,6 +329,7 @@ public partial class MainWindow : Window
         }
 
         _viewModel.Activate(category);
+        CategoryRailScroll.ScrollToTop();
         ApplyPlacement(WindowController.Expanded(CurrentWorkArea(), _settings));
         _viewModel.SetPanelExpanded(true);
         UpdateStatusPresentation();

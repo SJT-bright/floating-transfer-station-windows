@@ -286,6 +286,11 @@ public partial class MainWindow : Window
 
     private void RevealExternalDropRail()
     {
+        if (!_viewModel.IsExternalDropRailVisible)
+        {
+            CategoryRailScroll.ScrollToTop();
+        }
+
         StopPanelContentAnimation();
         StopCategoryRevealAnimations();
         _expandIntentTimer.Stop();
