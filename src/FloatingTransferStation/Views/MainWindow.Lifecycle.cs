@@ -122,6 +122,9 @@ public partial class MainWindow : Window
         }
 
         _isClosing = true;
+        _expandIntentTimer.Stop();
+        _collapseTimer.Stop();
+        StopPanelContentAnimation();
         IsEnabled = false;
         var operationCancellation = _windowOperationCancellation;
         try

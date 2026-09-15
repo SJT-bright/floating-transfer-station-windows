@@ -15,7 +15,10 @@ public sealed class PanelStateMachineTests
         state.Switch(BoardCategory.Prompt);
         state.LeaveSurface();
 
+        Assert.IsTrue(state.CanCollapse);
+        Assert.IsTrue(state.IsExpanded, "Checking collapse eligibility must not commit the transition.");
         Assert.IsTrue(state.TryCollapse());
+        Assert.IsFalse(state.CanCollapse);
         Assert.IsFalse(state.IsExpanded);
         Assert.AreEqual(BoardCategory.Prompt, state.ActiveCategory);
     }
@@ -76,6 +79,7 @@ public sealed class PanelStateMachineTests
         state.BeginDrag();
         state.LeaveSurface();
 
+        Assert.IsFalse(state.CanCollapse);
         Assert.IsFalse(state.TryCollapse());
         state.EndDrag();
         Assert.IsTrue(state.TryCollapse());

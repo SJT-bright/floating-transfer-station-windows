@@ -35,6 +35,8 @@ public partial class MainWindow : Window
 
     private static readonly TimeSpan ExpandContentAnimationDuration =
         TimeSpan.FromMilliseconds(167);
+    private static readonly TimeSpan CollapseContentAnimationDuration =
+        TimeSpan.FromMilliseconds(200);
     private static readonly TimeSpan SwitchContentAnimationDuration =
         TimeSpan.FromMilliseconds(140);
     private static readonly TimeSpan ReducedMotionContentAnimationDuration =
@@ -74,6 +76,8 @@ public partial class MainWindow : Window
     private WindowSettings _settings;
     private long _externalDragSurfaceVersion;
     private int _scrollRestoreVersion;
+    private int _collapseTransitionVersion;
+    private Storyboard? _collapseStoryboard;
     private bool _isClosing;
     private bool _allowClose;
     private bool _settingsInitialized;
@@ -129,8 +133,13 @@ public partial class MainWindow : Window
     {
         if (dependencyObject is MainWindow window && eventArgs.NewValue is false)
         {
+            var wasCollapsing = window._collapseStoryboard is not null;
             window.StopPanelContentAnimation();
             window.StopCategoryRevealAnimations();
+            if (wasCollapsing)
+            {
+                window.BeginCollapseAnimation();
+            }
         }
     }
 
@@ -240,6 +249,8 @@ public partial class MainWindow : Window
             return;
         }
 
+        StopPanelContentAnimation();
+        _collapseTimer.Stop();
         TransparencySlider.Value = CurrentWindowOpacity;
         UpdateTransparencyValueLabel();
         TransparencyPopup.IsOpen = true;

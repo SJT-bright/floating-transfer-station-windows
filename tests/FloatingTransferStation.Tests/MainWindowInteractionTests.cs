@@ -78,7 +78,7 @@ public sealed class MainWindowInteractionTests
             var state = GetPrivateField<PanelStateMachine>(window, "_panelState");
             state.LeaveSurface();
             InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
-            CompleteLayout(window);
+            CompleteCollapse(window);
             ExpandCategory(window, BoardCategory.Inbox);
             CompleteLayout(window);
             Assert.AreEqual(0d, scroll.VerticalOffset);
@@ -2075,7 +2075,7 @@ public sealed class MainWindowInteractionTests
             viewModel.SetDefaultCaptureCategory(BoardCategory.Reference);
             InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
             InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
-            CompleteLayout(window);
+            CompleteCollapse(window);
 
             var rowHeight = WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count;
             var expectedTop = SystemParameters.WorkArea.Top + WindowSettings.Default.Top + rowHeight;
@@ -2908,7 +2908,7 @@ public sealed class MainWindowInteractionTests
             list.SelectedItems.Add(selected);
             InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
             InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
-            CompleteLayout(window);
+            CompleteCollapse(window);
             var shortcut = NewKeyEventArgs(window, key);
 
             window.RaiseEvent(shortcut);
@@ -3258,7 +3258,7 @@ public sealed class MainWindowInteractionTests
 
             InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
             InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
-            CompleteLayout(window);
+            CompleteCollapse(window);
 
             Assert.IsFalse(viewModel.IsPanelExpanded);
             CollectionAssert.AreEqual(
@@ -3360,6 +3360,7 @@ public sealed class MainWindowInteractionTests
             InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
             InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
             Assert.AreEqual(2, list.SelectedItems.Count);
+            CompleteCollapse(window);
             ExpandCategory(window, BoardCategory.Inbox);
             CompleteLayout(window);
             Assert.AreEqual(2, list.SelectedItems.Count);
@@ -4502,7 +4503,7 @@ public sealed class MainWindowInteractionTests
             InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
             Assert.IsTrue(collapseTimer.IsEnabled);
             InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
-            CompleteLayout(window);
+            CompleteCollapse(window);
 
             Assert.AreEqual(WindowSettings.TabWidth, window.Width);
             Assert.AreSame(panel, viewModel.ActivePanel);
@@ -4520,10 +4521,15 @@ public sealed class MainWindowInteractionTests
     }
 
     [STATestMethod]
-    public void Collapse_HidesExpandedSurfaceBeforeMovingToTheCollapsedRow()
+    public void Collapse_RetractsRenderedSurfaceBeforeResizingAndPreservesCustomOpacity()
     {
         using var directory = new TestDirectory();
-        var window = CreateWindow(directory, new BoardService());
+        var board = new BoardService();
+        board.AddText("收回动画：内容向右淡出，面板收拢到待分类。\n鼠标移回即可取消收回。");
+        board.AddText("窗口尺寸在动画结束后才改变，避免文字反复排版。");
+        var window = CreateWindow(directory, board);
+        window.ClientAreaAnimationsEnabled = true;
+        window.CurrentWindowOpacity = 0.47d;
 
         try
         {
@@ -4535,23 +4541,189 @@ public sealed class MainWindowInteractionTests
             var expandedWidth = window.Width;
             var expandedHeight = window.Height;
             var expandedTop = window.Top;
+            var expandedLeft = window.Left;
+            var (host, transform) = FindPanelContent(window);
+            InvokePrivate(window, "StopPanelContentAnimation");
+            InvokePrivate(window, "StopCategoryRevealAnimations");
+            SaveVisualEvidence(shell, "collapse-0-expanded.png", "FTS_UI_ARTIFACTS");
 
             InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
             InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
+            var storyboard = GetPrivateField<Storyboard>(window, "_collapseStoryboard");
+            var clip = shell.Clip as RectangleGeometry;
+            Assert.IsNotNull(clip);
+            storyboard.Pause(shell);
+            storyboard.SeekAlignedToLastTick(shell, TimeSpan.FromMilliseconds(100), TimeSeekOrigin.BeginTime);
 
             Assert.AreEqual(expandedWidth, window.Width, 0.5);
             Assert.AreEqual(expandedHeight, window.Height, 0.5);
             Assert.AreEqual(expandedTop, window.Top, 0.5);
-            Assert.AreEqual(0d, shell.Opacity);
-            Assert.IsFalse(shell.IsHitTestVisible);
+            Assert.AreEqual(expandedLeft, window.Left, 0.5);
+            Assert.AreEqual(0.5d, host.Opacity, 0.01);
+            Assert.AreEqual(3d, transform.X, 0.01);
+            Assert.IsTrue(clip.Rect.Left > 0d && clip.Rect.Left < expandedWidth - WindowSettings.TabWidth);
+            Assert.AreEqual(expandedWidth + shell.CornerRadius.TopLeft, clip.Rect.Right, 0.5);
+            Assert.AreEqual(1d, shell.Opacity);
+            Assert.AreEqual(0.47d, window.Opacity, 0.001);
+            Assert.IsFalse(window.HasAnimatedProperties, "Native window geometry and user opacity must not animate.");
+            Assert.IsTrue(shell.IsHitTestVisible);
             Assert.IsTrue(viewModel.IsPanelExpanded);
+            Assert.AreEqual(1d, FindCategoryTab(window, BoardCategory.Inbox).Opacity);
+            SaveVisualEvidence(shell, "collapse-1-midpoint.png", "FTS_UI_ARTIFACTS");
 
-            CompleteLayout(window);
+            storyboard.SeekAlignedToLastTick(shell, TimeSpan.FromMilliseconds(180), TimeSeekOrigin.BeginTime);
+            SaveVisualEvidence(shell, "collapse-2-retracted.png", "FTS_UI_ARTIFACTS");
+            storyboard.Resume(shell);
+            CompleteCollapse(window);
 
             Assert.AreEqual(WindowSettings.TabWidth, window.Width, 0.5);
             Assert.AreEqual(1d, shell.Opacity);
             Assert.IsTrue(shell.IsHitTestVisible);
             Assert.IsFalse(viewModel.IsPanelExpanded);
+            Assert.IsFalse(GetPrivateField<PanelStateMachine>(window, "_panelState").IsExpanded);
+            AssertPanelContentAnimationStopped(host, transform);
+            Assert.AreEqual(0.47d, window.Opacity, 0.001);
+            SaveVisualEvidence(shell, "collapse-3-handle.png", "FTS_UI_ARTIFACTS");
+        }
+        finally
+        {
+            CloseWindow(window);
+        }
+    }
+
+    [STATestMethod]
+    [DataRow("Root_MouseEnter")]
+    [DataRow("CategoryTab_MouseEnter")]
+    [DataRow("BeginPanelDrag")]
+    [DataRow("TransparencyButton_Click")]
+    public void Collapse_InterruptionRestoresSurfaceAndInvalidatesOldCompletion(string interrupt)
+    {
+        using var directory = new TestDirectory();
+        var window = CreateWindow(directory, new BoardService());
+        window.ClientAreaAnimationsEnabled = true;
+
+        try
+        {
+            window.Show();
+            ExpandCategory(window, BoardCategory.Inbox);
+            CompleteLayout(window);
+            var expandedWidth = window.Width;
+            InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
+            InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
+            var version = GetPrivateField<int>(window, "_collapseTransitionVersion");
+            var shell = (Border)window.FindName("WindowShell");
+            var storyboard = GetPrivateField<Storyboard>(window, "_collapseStoryboard");
+            storyboard.Pause(shell);
+            storyboard.SeekAlignedToLastTick(shell, TimeSpan.FromMilliseconds(100), TimeSeekOrigin.BeginTime);
+
+            switch (interrupt)
+            {
+                case "BeginPanelDrag":
+                    InvokePrivate(window, interrupt);
+                    break;
+                case "TransparencyButton_Click":
+                    InvokePrivate(window, interrupt, window, new RoutedEventArgs());
+                    break;
+                case "CategoryTab_MouseEnter":
+                    EnterCategory(window, BoardCategory.Inbox);
+                    break;
+                default:
+                    InvokePrivate(window, interrupt, window, NewMouseEventArgs());
+                    break;
+            }
+
+            var placement = WindowController.Collapsed(
+                new WorkArea(0d, 0d, 1920d, 1080d), WindowSettings.Default, BoardCategory.Inbox);
+            InvokePrivate(window, "CompleteCollapseAnimation", version, placement);
+            CompleteCollapse(window);
+
+            Assert.AreEqual(expandedWidth, window.Width);
+            Assert.IsTrue(((MainWindowViewModel)window.DataContext).IsPanelExpanded);
+            Assert.IsTrue(GetPrivateField<PanelStateMachine>(window, "_panelState").IsExpanded);
+            AssertPanelContentAnimationStopped(FindPanelContent(window).Host, FindPanelContent(window).Transform);
+            Assert.IsFalse(shell.Clip.HasAnimatedProperties);
+            Assert.AreEqual(1d, shell.Opacity);
+            Assert.IsTrue(shell.IsHitTestVisible);
+        }
+        finally
+        {
+            CloseWindow(window);
+        }
+    }
+
+    [STATestMethod]
+    public void Collapse_ReentryDuringHiddenHandoffCancelsQueuedResizeAndCanCollapseAgain()
+    {
+        using var directory = new TestDirectory();
+        var window = CreateWindow(directory, new BoardService());
+        window.ClientAreaAnimationsEnabled = true;
+
+        try
+        {
+            window.Show();
+            ExpandCategory(window, BoardCategory.Inbox);
+            CompleteLayout(window);
+            var expandedWidth = window.Width;
+            var shell = (Border)window.FindName("WindowShell");
+            InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
+            InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
+            var version = GetPrivateField<int>(window, "_collapseTransitionVersion");
+            var work = SystemParameters.WorkArea;
+            var placement = WindowController.Collapsed(
+                new WorkArea(work.Left, work.Top, work.Width, work.Height), WindowSettings.Default, BoardCategory.Inbox);
+            InvokePrivate(window, "CompleteCollapseAnimation", version, placement);
+
+            Assert.AreEqual(0d, shell.Opacity);
+            Assert.IsFalse(shell.IsHitTestVisible);
+            Assert.AreEqual(expandedWidth, window.Width);
+            InvokePrivate(window, "Root_MouseEnter", window, NewMouseEventArgs());
+            CompleteCollapse(window);
+
+            Assert.AreEqual(expandedWidth, window.Width);
+            Assert.AreEqual(1d, shell.Opacity);
+            Assert.IsTrue(shell.IsHitTestVisible);
+            Assert.IsTrue(GetPrivateField<PanelStateMachine>(window, "_panelState").IsExpanded);
+
+            InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
+            InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
+            CompleteCollapse(window);
+            Assert.AreEqual(WindowSettings.TabWidth, window.Width);
+        }
+        finally
+        {
+            CloseWindow(window);
+        }
+    }
+
+    [STATestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void Collapse_ReducedMotionUsesShortFadeAndStillFinishes(bool disableDuringCollapse)
+    {
+        using var directory = new TestDirectory();
+        var window = CreateWindow(directory, new BoardService());
+        window.ClientAreaAnimationsEnabled = disableDuringCollapse;
+
+        try
+        {
+            window.Show();
+            ExpandCategory(window, BoardCategory.Inbox);
+            CompleteLayout(window);
+            InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
+            InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
+            window.ClientAreaAnimationsEnabled = false;
+            var (host, transform) = FindPanelContent(window);
+            var shell = (Border)window.FindName("WindowShell");
+            Assert.IsTrue(host.HasAnimatedProperties);
+            Assert.IsFalse(transform.HasAnimatedProperties);
+            Assert.IsFalse(shell.Clip.HasAnimatedProperties);
+
+            CompleteCollapse(window);
+
+            Assert.AreEqual(WindowSettings.TabWidth, window.Width);
+            AssertPanelContentAnimationStopped(host, transform);
+            Assert.IsTrue(shell.IsHitTestVisible);
+            Assert.AreEqual(1d, shell.Opacity);
         }
         finally
         {
@@ -4808,6 +4980,12 @@ public sealed class MainWindowInteractionTests
         };
         timer.Start();
         Dispatcher.PushFrame(frame);
+    }
+
+    private static void CompleteCollapse(Window window)
+    {
+        PumpDispatcherFor(window.Dispatcher, TimeSpan.FromMilliseconds(400));
+        CompleteLayout(window);
     }
 
     private static void CloseWindow(Window window)

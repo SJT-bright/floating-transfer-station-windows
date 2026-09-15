@@ -2,7 +2,7 @@
 
 ## 项目状态
 
-悬浮中转站是一个活跃维护的 Windows 10/11 64 位 WPF 应用，使用 .NET 10、MSTest 和 Inno Setup。独立 Windows 公开仓库为 `SJT-bright/floating-transfer-station-windows`，当前稳定发布为 1.5.1。
+悬浮中转站是一个活跃维护的 Windows 10/11 64 位 WPF 应用，使用 .NET 10、MSTest 和 Inno Setup。独立 Windows 公开仓库为 `SJT-bright/floating-transfer-station-windows`，当前稳定发布为 1.5.2。
 
 Windows 分支规则：自动收集始终进入待分类，类别切换仅切换视图。1000 起的类别 ID 表示自定义类别，名称保存在 settings.json，条目保存在 board.json。图片跨类别拖动通过异步导入服务复制独立文件，保留源条目；显式移动和文本拖动保留移动语义。安装包必须通过 Windows CI 测试和启动探针后发布。
 

@@ -1,5 +1,5 @@
 #define MyAppName "悬浮中转站"
-#define MyAppVersion "1.5.1"
+#define MyAppVersion "1.5.2"
 #define MyAppExeName "悬浮中转站.exe"
 #define MyAppMutexName "Local\FloatingTransferStation.App"
 

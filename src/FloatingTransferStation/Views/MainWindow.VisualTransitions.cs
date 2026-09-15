@@ -79,6 +79,11 @@ public partial class MainWindow : Window
 
         _collapseTimer.Stop();
         _expandIntentTimer.Stop();
+        if (_collapseStoryboard is not null)
+        {
+            StopPanelContentAnimation();
+        }
+
         _panelState.EnterSurface();
         if (_panelState.IsExpanded)
         {
@@ -461,6 +466,7 @@ public partial class MainWindow : Window
 
     private void StopPanelContentAnimation()
     {
+        CancelCollapseAnimation();
         PanelContentHost.BeginAnimation(
             UIElement.OpacityProperty,
             null,
@@ -504,17 +510,113 @@ public partial class MainWindow : Window
     private void CollapseTimer_Tick(object? sender, EventArgs e)
     {
         _collapseTimer.Stop();
-        if (TransparencyPopup.IsOpen || IsCategoryNameEditActive() || !_panelState.TryCollapse())
+        if (_isClosing || TransparencyPopup.IsOpen || IsCategoryNameEditActive() ||
+            !_panelState.CanCollapse || _collapseStoryboard is not null)
         {
             return;
         }
 
         SaveCurrentScrollOffset();
+        BeginCollapseAnimation();
+    }
+
+    private void BeginCollapseAnimation()
+    {
+        StopPanelContentAnimation();
         StopCategoryRevealAnimations();
-        BeginCollapsedVisualHandoff(WindowController.Collapsed(
+        var placement = WindowController.Collapsed(
             CurrentWorkArea(),
             _settings,
-            _viewModel.DefaultCapturePanel.Category));
+            _viewModel.DefaultCapturePanel.Category);
+        var fullMotion = ClientAreaAnimationsEnabled;
+        var duration = new Duration(fullMotion
+            ? CollapseContentAnimationDuration
+            : ReducedMotionContentAnimationDuration);
+        var storyboard = new Storyboard();
+        var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
+
+        AddCollapseAnimation(storyboard, PanelContentHost, UIElement.OpacityProperty,
+            new DoubleAnimation(1d, 0d, duration) { EasingFunction = easing });
+        foreach (var tab in CategoryTabs())
+        {
+            if (tab.DataContext is CategoryViewModel { IsDefaultCapture: false })
+            {
+                AddCollapseAnimation(storyboard, tab, UIElement.OpacityProperty,
+                    new DoubleAnimation(1d, 0d, duration) { EasingFunction = easing });
+            }
+        }
+
+        if (fullMotion)
+        {
+            AddCollapseAnimation(storyboard, PanelContentTransform, TranslateTransform.XProperty,
+                new DoubleAnimation(0d, 6d, duration) { EasingFunction = easing });
+
+            // Retract the rendered surface without resizing/reflowing the live list each frame.
+            // Extend the rounded clip beyond the right edge to keep that docked edge square.
+            var radius = WindowShell.CornerRadius.TopLeft;
+            var clip = new RectangleGeometry(new Rect(0d, 0d, Width + radius, Height), radius, radius);
+            WindowShell.Clip = clip;
+            AddCollapseAnimation(storyboard, clip, RectangleGeometry.RectProperty,
+                new RectAnimation(
+                    clip.Rect,
+                    new Rect(placement.Left - Left, placement.Top - Top,
+                        placement.Width + radius, placement.Height),
+                    duration)
+                { EasingFunction = easing });
+        }
+
+        var version = ++_collapseTransitionVersion;
+        _collapseStoryboard = storyboard;
+        storyboard.Completed += (_, _) => CompleteCollapseAnimation(version, placement);
+        storyboard.Begin(WindowShell, HandoffBehavior.SnapshotAndReplace, isControllable: true);
+    }
+
+    private static void AddCollapseAnimation(
+        Storyboard storyboard,
+        DependencyObject target,
+        DependencyProperty property,
+        AnimationTimeline animation)
+    {
+        Storyboard.SetTarget(animation, target);
+        Storyboard.SetTargetProperty(animation, new PropertyPath(property));
+        storyboard.Children.Add(animation);
+    }
+
+    private void CompleteCollapseAnimation(int version, WindowPlacement placement)
+    {
+        if (version != _collapseTransitionVersion || _collapseStoryboard is null)
+        {
+            return;
+        }
+
+        if (_isClosing || TransparencyPopup.IsOpen || IsCategoryNameEditActive() ||
+            !_panelState.TryCollapse())
+        {
+            StopPanelContentAnimation();
+            return;
+        }
+
+        BeginCollapsedVisualHandoff(placement);
+    }
+
+    private void CancelCollapseAnimation()
+    {
+        if (_collapseStoryboard is not { } storyboard)
+        {
+            return;
+        }
+
+        _collapseStoryboard = null;
+        _collapseTransitionVersion++;
+        storyboard.Remove(WindowShell);
+        StopCategoryRevealAnimations();
+        WindowShell.Clip = WindowShellClip.Create(Width, Height, WindowShell.CornerRadius.TopLeft);
+        WindowShell.Opacity = 1d;
+        WindowShell.IsHitTestVisible = true;
+        if (_viewModel.IsPanelExpanded && _viewModel.ActivePanel is { } panel && !_panelState.IsExpanded)
+        {
+            _panelState.Switch(panel.Category);
+        }
     }
 
     private bool IsCategoryNameEditActive() =>
@@ -537,18 +639,32 @@ public partial class MainWindow : Window
 
     private void BeginCollapsedVisualHandoff(WindowPlacement placement)
     {
+        var version = _collapseTransitionVersion;
         WindowShell.Opacity = 0d;
         WindowShell.IsHitTestVisible = false;
         _ = Dispatcher.BeginInvoke(
             DispatcherPriority.ContextIdle,
-            new Action(() => CompleteCollapsedVisualHandoff(placement)));
+            new Action(() =>
+            {
+                if (version == _collapseTransitionVersion && !_isClosing)
+                {
+                    CompleteCollapsedVisualHandoff(placement);
+                }
+            }));
     }
 
     private void CompleteCollapsedVisualHandoff(WindowPlacement placement)
     {
+        var storyboard = _collapseStoryboard;
+        _collapseStoryboard = null;
+        _collapseTransitionVersion++;
+        storyboard?.Remove(WindowShell);
+        StopPanelContentAnimation();
+        StopCategoryRevealAnimations();
         ApplyPlacement(placement);
         _viewModel.SetPanelExpanded(false);
         UpdateStatusPresentation();
+        WindowShell.Clip = WindowShellClip.Create(placement.Width, placement.Height, WindowShell.CornerRadius.TopLeft);
         WindowShell.Opacity = 1d;
         WindowShell.IsHitTestVisible = true;
     }

@@ -11,6 +11,7 @@ public sealed class PanelStateMachine
     public BoardCategory? PendingCategory { get; private set; }
     public bool IsDragInProgress => _dragInProgress;
     public bool IsExpanded { get; private set; }
+    public bool CanCollapse => IsExpanded && !_pointerInside && !_dragInProgress;
 
     public void BeginHover(BoardCategory category)
     {
@@ -66,7 +67,7 @@ public sealed class PanelStateMachine
 
     public bool TryCollapse()
     {
-        if (_pointerInside || _dragInProgress || !IsExpanded)
+        if (!CanCollapse)
         {
             return false;
         }
