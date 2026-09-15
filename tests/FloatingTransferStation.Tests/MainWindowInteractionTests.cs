@@ -4568,7 +4568,7 @@ public sealed class MainWindowInteractionTests
             Assert.IsFalse(window.HasAnimatedProperties, "Native window geometry and user opacity must not animate.");
             Assert.IsTrue(shell.IsHitTestVisible);
             Assert.IsTrue(viewModel.IsPanelExpanded);
-            Assert.AreEqual(1d, FindCategoryTab(window, BoardCategory.Inbox).Opacity);
+            Assert.AreEqual(1d, FindCategoryTab(window, viewModel.DefaultCapturePanel).Opacity);
             SaveVisualEvidence(shell, "collapse-1-midpoint.png", "FTS_UI_ARTIFACTS");
 
             storyboard.SeekAlignedToLastTick(shell, TimeSpan.FromMilliseconds(180), TimeSeekOrigin.BeginTime);
