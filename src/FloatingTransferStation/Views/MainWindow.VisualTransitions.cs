@@ -484,6 +484,11 @@ public partial class MainWindow : Window
     {
         _expandIntentTimer.Stop();
         _collapseTimer.Stop();
+        if (TransparencyPopup.IsOpen)
+        {
+            return;
+        }
+
         if (IsCategoryNameEditActive())
         {
             return;
@@ -499,7 +504,7 @@ public partial class MainWindow : Window
     private void CollapseTimer_Tick(object? sender, EventArgs e)
     {
         _collapseTimer.Stop();
-        if (IsCategoryNameEditActive() || !_panelState.TryCollapse())
+        if (TransparencyPopup.IsOpen || IsCategoryNameEditActive() || !_panelState.TryCollapse())
         {
             return;
         }

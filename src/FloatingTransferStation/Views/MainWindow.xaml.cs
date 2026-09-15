@@ -260,6 +260,17 @@ public partial class MainWindow : Window
         UpdateTransparencyValueLabel();
     }
 
+    private void TransparencyPopup_Closed(object? sender, EventArgs e)
+    {
+        if (_isClosing || IsMouseOver || !_panelState.IsExpanded)
+        {
+            return;
+        }
+
+        _panelState.LeaveSurface();
+        _collapseTimer.Start();
+    }
+
     private void UpdateStatusPresentation()
     {
         CompactStatusPopup.IsOpen =

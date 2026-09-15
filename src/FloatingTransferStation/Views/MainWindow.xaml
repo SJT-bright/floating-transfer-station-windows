@@ -373,7 +373,8 @@
              VerticalOffset="6"
              AllowsTransparency="True"
              PopupAnimation="Fade"
-             StaysOpen="False">
+             StaysOpen="False"
+             Closed="TransparencyPopup_Closed">
         <Border Style="{StaticResource TransparencyPopupStyle}">
           <StackPanel>
             <DockPanel LastChildFill="True">
