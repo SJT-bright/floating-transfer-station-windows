@@ -4,11 +4,11 @@
 
 ## 下载与安装
 
-打开 [最新版下载](https://github.com/SJT-bright/floating-transfer-station-windows/releases/latest)，下载 **FloatingTransferStation-Setup-1.5.0.exe**，双击安装。
+打开 [最新版下载](https://github.com/SJT-bright/floating-transfer-station-windows/releases/latest)，下载 **FloatingTransferStation-Setup-1.5.1.exe**，双击安装。
 
 - 支持 Windows 10 / 11 x64，自带 .NET 运行环境，不需要安装开发工具。
 - 安装器支持选择程序和素材存储位置；安装后自动启动，并在登录 Windows 时运行。
-- 免安装包 `FloatingTransferStation-Windows-x64-1.5.0.zip` 解压后运行“悬浮中转站.exe”；免安装方式不会自动注册开机启动。
+- 免安装包 `FloatingTransferStation-Windows-x64-1.5.1.zip` 解压后运行“悬浮中转站.exe”；免安装方式不会自动注册开机启动。
 - GitHub 的 `Source code` 是源码，不是安装包。安装包暂未购买代码签名证书，Windows 可能显示未知发布者提示。
 
 ## 使用
