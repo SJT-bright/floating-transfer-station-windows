@@ -4622,7 +4622,7 @@ public sealed class MainWindowInteractionTests
                     InvokePrivate(window, interrupt);
                     break;
                 case "TransparencyButton_Click":
-                    InvokePrivate(window, interrupt, window, new RoutedEventArgs());
+                    InvokePrivate(window, interrupt, window, new RoutedEventArgs(ButtonBase.ClickEvent));
                     break;
                 case "CategoryTab_MouseEnter":
                     EnterCategory(window, BoardCategory.Inbox);

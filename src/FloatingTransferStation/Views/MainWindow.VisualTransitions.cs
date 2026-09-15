@@ -535,20 +535,21 @@ public partial class MainWindow : Window
         var storyboard = new Storyboard();
         var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
 
-        AddCollapseAnimation(storyboard, PanelContentHost, UIElement.OpacityProperty,
+        AddCollapseAnimation(storyboard, PanelContentHost, new PropertyPath(UIElement.OpacityProperty),
             new DoubleAnimation(1d, 0d, duration) { EasingFunction = easing });
         foreach (var tab in CategoryTabs())
         {
             if (tab.DataContext is CategoryViewModel { IsDefaultCapture: false })
             {
-                AddCollapseAnimation(storyboard, tab, UIElement.OpacityProperty,
+                AddCollapseAnimation(storyboard, tab, new PropertyPath(UIElement.OpacityProperty),
                     new DoubleAnimation(1d, 0d, duration) { EasingFunction = easing });
             }
         }
 
         if (fullMotion)
         {
-            AddCollapseAnimation(storyboard, PanelContentTransform, TranslateTransform.XProperty,
+            AddCollapseAnimation(storyboard, PanelContentHost,
+                new PropertyPath("(0).(1)", UIElement.RenderTransformProperty, TranslateTransform.XProperty),
                 new DoubleAnimation(0d, 6d, duration) { EasingFunction = easing });
 
             // Retract the rendered surface without resizing/reflowing the live list each frame.
@@ -556,7 +557,8 @@ public partial class MainWindow : Window
             var radius = WindowShell.CornerRadius.TopLeft;
             var clip = new RectangleGeometry(new Rect(0d, 0d, Width + radius, Height), radius, radius);
             WindowShell.Clip = clip;
-            AddCollapseAnimation(storyboard, clip, RectangleGeometry.RectProperty,
+            AddCollapseAnimation(storyboard, WindowShell,
+                new PropertyPath("(0).(1)", UIElement.ClipProperty, RectangleGeometry.RectProperty),
                 new RectAnimation(
                     clip.Rect,
                     new Rect(placement.Left - Left, placement.Top - Top,
@@ -574,11 +576,11 @@ public partial class MainWindow : Window
     private static void AddCollapseAnimation(
         Storyboard storyboard,
         DependencyObject target,
-        DependencyProperty property,
+        PropertyPath property,
         AnimationTimeline animation)
     {
         Storyboard.SetTarget(animation, target);
-        Storyboard.SetTargetProperty(animation, new PropertyPath(property));
+        Storyboard.SetTargetProperty(animation, property);
         storyboard.Children.Add(animation);
     }
 
