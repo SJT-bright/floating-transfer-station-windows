@@ -5,7 +5,7 @@ public sealed record WindowSettings(
     double WindowHeight,
     double Top,
     Dictionary<BoardCategory, string>? CategoryNames = null,
-    double WindowOpacity = DefaultWindowOpacity)
+    double WindowOpacity = 0.88)
 {
     public const double TabWidth = 58;
     public const double MinPanelWidth = 280;
