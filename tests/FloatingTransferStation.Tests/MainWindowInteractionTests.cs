@@ -4545,7 +4545,7 @@ public sealed class MainWindowInteractionTests
             var (host, transform) = FindPanelContent(window);
             InvokePrivate(window, "StopPanelContentAnimation");
             InvokePrivate(window, "StopCategoryRevealAnimations");
-            SaveVisualEvidence(shell, "collapse-0-expanded.png", "FTS_UI_ARTIFACTS");
+            SaveVisualEvidence(window, "collapse-0-expanded.png", "FTS_UI_ARTIFACTS");
 
             InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
             InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
@@ -4554,6 +4554,7 @@ public sealed class MainWindowInteractionTests
             Assert.IsNotNull(clip);
             storyboard.Pause(shell);
             storyboard.SeekAlignedToLastTick(shell, TimeSpan.FromMilliseconds(100), TimeSeekOrigin.BeginTime);
+            CompleteLayout(window);
 
             Assert.AreEqual(expandedWidth, window.Width, 0.5);
             Assert.AreEqual(expandedHeight, window.Height, 0.5);
@@ -4569,10 +4570,21 @@ public sealed class MainWindowInteractionTests
             Assert.IsTrue(shell.IsHitTestVisible);
             Assert.IsTrue(viewModel.IsPanelExpanded);
             Assert.AreEqual(1d, FindCategoryTab(window, viewModel.DefaultCapturePanel).Opacity);
-            SaveVisualEvidence(shell, "collapse-1-midpoint.png", "FTS_UI_ARTIFACTS");
+            var bitmap = new RenderTargetBitmap((int)expandedWidth, (int)expandedHeight,
+                96d, 96d, PixelFormats.Pbgra32);
+            bitmap.Render(window);
+            var stride = bitmap.PixelWidth * 4;
+            var pixels = new byte[stride * bitmap.PixelHeight];
+            bitmap.CopyPixels(pixels, stride, 0);
+            Assert.AreEqual(0, pixels[(20 * stride) + (20 * 4) + 3],
+                "The vacated top-left area must actually render transparent halfway through collapse.");
+            Assert.IsTrue(pixels[((bitmap.PixelHeight - 20) * stride) + ((bitmap.PixelWidth - 20) * 4) + 3] > 0,
+                "The docked default handle must remain visible while the surrounding surface retracts.");
+            SaveVisualEvidence(window, "collapse-1-midpoint.png", "FTS_UI_ARTIFACTS");
 
             storyboard.SeekAlignedToLastTick(shell, TimeSpan.FromMilliseconds(180), TimeSeekOrigin.BeginTime);
-            SaveVisualEvidence(shell, "collapse-2-retracted.png", "FTS_UI_ARTIFACTS");
+            CompleteLayout(window);
+            SaveVisualEvidence(window, "collapse-2-retracted.png", "FTS_UI_ARTIFACTS");
             storyboard.Resume(shell);
             CompleteCollapse(window);
 
@@ -4583,7 +4595,7 @@ public sealed class MainWindowInteractionTests
             Assert.IsFalse(GetPrivateField<PanelStateMachine>(window, "_panelState").IsExpanded);
             AssertPanelContentAnimationStopped(host, transform);
             Assert.AreEqual(0.47d, window.Opacity, 0.001);
-            SaveVisualEvidence(shell, "collapse-3-handle.png", "FTS_UI_ARTIFACTS");
+            SaveVisualEvidence(window, "collapse-3-handle.png", "FTS_UI_ARTIFACTS");
         }
         finally
         {
