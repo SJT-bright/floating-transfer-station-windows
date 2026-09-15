@@ -456,6 +456,15 @@
     <Setter Property="IsHitTestVisible" Value="False" />
   </Style>
 
+  <Style x:Key="TransparencyPopupStyle" TargetType="Border">
+    <Setter Property="Width" Value="220" />
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="Background" Value="{StaticResource HeaderBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+
   <Style x:Key="HeaderThumbStyle" TargetType="Thumb">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Cursor" Value="SizeNS" />

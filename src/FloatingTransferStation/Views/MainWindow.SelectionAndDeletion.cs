@@ -218,6 +218,8 @@ public partial class MainWindow : Window
         e.Handled = true;
         var work = CurrentWorkArea();
         _settings = _settings.ResetToDefault(work.Width, work.Height);
+        _opacitySaveTimer.Stop();
+        CurrentWindowOpacity = _settings.WindowOpacity;
         ApplyPlacement(WindowController.Expanded(work, _settings));
         try
         {

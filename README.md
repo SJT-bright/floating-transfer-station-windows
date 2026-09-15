@@ -4,11 +4,11 @@
 
 ## 下载与安装
 
-打开 [最新版下载](https://github.com/SJT-bright/floating-transfer-station-windows/releases/latest)，下载 **FloatingTransferStation-Setup-1.4.0.exe**，双击安装。
+打开 [最新版下载](https://github.com/SJT-bright/floating-transfer-station-windows/releases/latest)，下载 **FloatingTransferStation-Setup-1.5.0.exe**，双击安装。
 
 - 支持 Windows 10 / 11 x64，自带 .NET 运行环境，不需要安装开发工具。
 - 安装器支持选择程序和素材存储位置；安装后自动启动，并在登录 Windows 时运行。
-- 免安装包 `FloatingTransferStation-Windows-x64-1.4.0.zip` 解压后运行“悬浮中转站.exe”；免安装方式不会自动注册开机启动。
+- 免安装包 `FloatingTransferStation-Windows-x64-1.5.0.zip` 解压后运行“悬浮中转站.exe”；免安装方式不会自动注册开机启动。
 - GitHub 的 `Source code` 是源码，不是安装包。安装包暂未购买代码签名证书，Windows 可能显示未知发布者提示。
 
 ## 使用
@@ -18,6 +18,7 @@
 - 把图片拖到其他类别：目标显示蓝色，松手后保存独立副本，原类别图片保留。文本拖动、卡片“移动到”菜单仍执行移动。
 - 拖图片到其他软件，或拖文件到指定类别导入；目标软件须支持 Windows 文件拖放。
 - 半透明置顶窗口，鼠标移入展开、移出收起。通过标题区域拖动位置；卡片拖动不会拖走窗口。
+- 在展开后的标题栏操作区点击 `◐` 可调节窗口透明度（35%—100%），滑块实时预览并自动保存；“恢复默认尺寸、位置和透明度”可一键回到默认值。
 - `Ctrl + 单击` 或选择框多选，可批量置顶或取消置顶。
 - `Ctrl + A`：选择当前分类全部内容。
 - `Esc`：取消当前分类的全部选择。

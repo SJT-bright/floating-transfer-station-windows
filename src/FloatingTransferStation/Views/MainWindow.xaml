@@ -127,10 +127,23 @@
                           VerticalAlignment="Center"
                           Margin="0,0,8,0"
                           Style="{StaticResource HeaderActionsHostStyle}">
+                <Button x:Name="TransparencyButton"
+                        Style="{StaticResource HeaderActionButtonStyle}"
+                        ToolTip="调节窗口透明度"
+                        AutomationProperties.Name="调节窗口透明度"
+                        Click="TransparencyButton_Click">
+                  <TextBlock Text="◐"
+                             FontSize="17"
+                             FontWeight="SemiBold"
+                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center" />
+                </Button>
+
                 <Button x:Name="ResetWindowButton"
                         Style="{StaticResource HeaderActionButtonStyle}"
-                        ToolTip="恢复默认尺寸和位置"
-                        AutomationProperties.Name="恢复默认尺寸和位置"
+                        ToolTip="恢复默认尺寸、位置和透明度"
+                        AutomationProperties.Name="恢复默认尺寸、位置和透明度"
                         Click="ResetWindowButton_Click">
                   <Viewbox Width="16" Height="16">
                     <Path Data="M4,9 L4,4 L9,4 M15,9 L15,4 L10,4 M4,10 L4,15 L9,15 M15,10 L15,15 L10,15"
@@ -351,6 +364,51 @@
         <Border Style="{StaticResource CompactStatusPopupStyle}">
           <TextBlock Text="{Binding StatusText}"
                      Style="{StaticResource StatusTextStyle}" />
+        </Border>
+      </Popup>
+
+      <Popup x:Name="TransparencyPopup"
+             PlacementTarget="{Binding ElementName=TransparencyButton}"
+             Placement="Bottom"
+             VerticalOffset="6"
+             AllowsTransparency="True"
+             PopupAnimation="Fade"
+             StaysOpen="False">
+        <Border Style="{StaticResource TransparencyPopupStyle}">
+          <StackPanel>
+            <DockPanel LastChildFill="True">
+              <TextBlock Text="窗口透明度"
+                         Style="{StaticResource HeaderTitleStyle}"
+                         FontSize="13" />
+              <TextBlock x:Name="TransparencyValueText"
+                         DockPanel.Dock="Right"
+                         Foreground="{StaticResource AccentBrush}"
+                         FontWeight="SemiBold"
+                         FontSize="13"
+                         VerticalAlignment="Center" />
+            </DockPanel>
+            <Slider x:Name="TransparencySlider"
+                    Minimum="0.35"
+                    Maximum="1"
+                    Value="0.88"
+                    TickFrequency="0.05"
+                    IsSnapToTickEnabled="False"
+                    Margin="0,10,0,4"
+                    ValueChanged="TransparencySlider_ValueChanged" />
+            <DockPanel>
+              <TextBlock Text="35%"
+                         Foreground="{StaticResource SecondaryTextBrush}"
+                         FontSize="10" />
+              <TextBlock Text="100%"
+                         DockPanel.Dock="Right"
+                         Foreground="{StaticResource SecondaryTextBrush}"
+                         FontSize="10" />
+            </DockPanel>
+            <TextBlock Text="拖动滑块实时预览，自动保存"
+                       Foreground="{StaticResource SecondaryTextBrush}"
+                       FontSize="11"
+                       Margin="0,8,0,0" />
+          </StackPanel>
         </Border>
       </Popup>
 

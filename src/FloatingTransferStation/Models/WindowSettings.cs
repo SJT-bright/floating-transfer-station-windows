@@ -4,12 +4,16 @@ public sealed record WindowSettings(
     double PanelWidth,
     double WindowHeight,
     double Top,
-    Dictionary<BoardCategory, string>? CategoryNames = null)
+    Dictionary<BoardCategory, string>? CategoryNames = null,
+    double WindowOpacity = DefaultWindowOpacity)
 {
     public const double TabWidth = 58;
     public const double MinPanelWidth = 280;
     public const double MaxPanelWidth = 640;
     public const double MinWindowHeight = 360;
+    public const double MinWindowOpacity = 0.35;
+    public const double MaxWindowOpacity = 1.0;
+    public const double DefaultWindowOpacity = 0.88;
 
     public static WindowSettings Default { get; } = new(360, 640, 80);
 
@@ -67,7 +71,15 @@ public sealed record WindowSettings(
         {
             PanelWidth = panelWidth,
             WindowHeight = height,
-            Top = top
+            Top = top,
+            WindowOpacity = NormalizeOpacity(WindowOpacity)
         };
     }
+
+    private static double NormalizeOpacity(double opacity) =>
+        double.IsFinite(opacity)
+            ? opacity == 0
+                ? DefaultWindowOpacity
+                : Math.Clamp(opacity, MinWindowOpacity, MaxWindowOpacity)
+            : DefaultWindowOpacity;
 }

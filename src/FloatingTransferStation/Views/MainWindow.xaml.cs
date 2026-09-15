@@ -23,6 +23,16 @@ public partial class MainWindow : Window
             typeof(MainWindow),
             new FrameworkPropertyMetadata(true, OnClientAreaAnimationsEnabledChanged));
 
+    public static readonly DependencyProperty CurrentWindowOpacityProperty =
+        DependencyProperty.Register(
+            nameof(CurrentWindowOpacity),
+            typeof(double),
+            typeof(MainWindow),
+            new FrameworkPropertyMetadata(
+                WindowSettings.DefaultWindowOpacity,
+                FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+                OnCurrentWindowOpacityChanged));
+
     private static readonly TimeSpan ExpandContentAnimationDuration =
         TimeSpan.FromMilliseconds(167);
     private static readonly TimeSpan SwitchContentAnimationDuration =
@@ -47,6 +57,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _expandIntentTimer;
     private readonly DispatcherTimer _collapseTimer;
     private readonly DispatcherTimer _statusTimer;
+    private readonly DispatcherTimer _opacitySaveTimer;
     private readonly MainWindowViewModel _viewModel;
     private readonly object _pendingOperationsLock = new();
     private readonly HashSet<Task> _pendingOperations = [];
@@ -65,11 +76,51 @@ public partial class MainWindow : Window
     private int _scrollRestoreVersion;
     private bool _isClosing;
     private bool _allowClose;
+    private bool _settingsInitialized;
 
     public bool ClientAreaAnimationsEnabled
     {
         get => (bool)GetValue(ClientAreaAnimationsEnabledProperty);
         set => SetValue(ClientAreaAnimationsEnabledProperty, value);
+    }
+
+    public double CurrentWindowOpacity
+    {
+        get => (double)GetValue(CurrentWindowOpacityProperty);
+        set => SetValue(CurrentWindowOpacityProperty, value);
+    }
+
+    private static void OnCurrentWindowOpacityChanged(
+        DependencyObject dependencyObject,
+        DependencyPropertyChangedEventArgs eventArgs)
+    {
+        if (dependencyObject is not MainWindow window ||
+            eventArgs.NewValue is not double requestedOpacity ||
+            !double.IsFinite(requestedOpacity))
+        {
+            return;
+        }
+
+        var opacity = Math.Clamp(
+            requestedOpacity,
+            WindowSettings.MinWindowOpacity,
+            WindowSettings.MaxWindowOpacity);
+        if (Math.Abs(opacity - requestedOpacity) > 0.0001)
+        {
+            window.SetCurrentValue(CurrentWindowOpacityProperty, opacity);
+            return;
+        }
+
+        window.Opacity = opacity;
+        if (!window._settingsInitialized)
+        {
+            return;
+        }
+
+        window._settings = window._settings with { WindowOpacity = opacity };
+        window.UpdateTransparencyValueLabel();
+        window._opacitySaveTimer.Stop();
+        window._opacitySaveTimer.Start();
     }
 
     private static void OnClientAreaAnimationsEnabledChanged(
@@ -115,6 +166,10 @@ public partial class MainWindow : Window
         _collapseTimer.Tick += CollapseTimer_Tick;
         _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
         _statusTimer.Tick += StatusTimer_Tick;
+        _opacitySaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
+        _opacitySaveTimer.Tick += OpacitySaveTimer_Tick;
+        CurrentWindowOpacity = _settings.WindowOpacity;
+        _settingsInitialized = true;
         AddHandler(
             TextCompositionManager.PreviewTextInputStartEvent,
             new TextCompositionEventHandler(CategoryNameEditor_CompositionStartedOrUpdated),
@@ -150,6 +205,59 @@ public partial class MainWindow : Window
         _statusTimer.Stop();
         _viewModel.ClearStatus();
         CompactStatusPopup.IsOpen = false;
+    }
+
+    private async void OpacitySaveTimer_Tick(object? sender, EventArgs e)
+    {
+        _opacitySaveTimer.Stop();
+        if (_isClosing)
+        {
+            return;
+        }
+
+        try
+        {
+            await SaveSettingsAsync();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            ShowStatus("透明度暂未保存。");
+        }
+    }
+
+    private void UpdateTransparencyValueLabel()
+    {
+        if (TransparencyValueText is not null)
+        {
+            TransparencyValueText.Text = $"{Math.Round(CurrentWindowOpacity * 100):0}%";
+        }
+    }
+
+    private void TransparencyButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isClosing)
+        {
+            return;
+        }
+
+        TransparencySlider.Value = CurrentWindowOpacity;
+        UpdateTransparencyValueLabel();
+        TransparencyPopup.IsOpen = true;
+        TransparencySlider.Focus();
+        e.Handled = true;
+    }
+
+    private void TransparencySlider_ValueChanged(
+        object sender,
+        RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (!double.IsFinite(e.NewValue))
+        {
+            return;
+        }
+
+        CurrentWindowOpacity = e.NewValue;
+        UpdateTransparencyValueLabel();
     }
 
     private void UpdateStatusPresentation()

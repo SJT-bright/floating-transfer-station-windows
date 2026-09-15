@@ -128,7 +128,7 @@ public sealed class LifecycleTests
     [TestCategory("Adversarial")]
     public void ReleaseMetadata_UsesOneConsistentVersion()
     {
-        const string expectedVersion = "1.4.0";
+        const string expectedVersion = "1.5.0";
         var repositoryRoot = FindRepositoryRoot();
         var project = File.ReadAllText(Path.Combine(
             repositoryRoot,
@@ -220,7 +220,7 @@ public sealed class LifecycleTests
                 StringComparer.Ordinal);
 
         CollectionAssert.AreEqual(
-            new[] { "FloatingTransferStation-Setup-1.4.0.exe" },
+            new[] { "FloatingTransferStation-Setup-1.5.0.exe" },
             installerAssetNames,
             "README must name only the latest installer asset.");
         StringAssert.Contains(readme, "批量置顶或取消置顶");
@@ -249,7 +249,7 @@ public sealed class LifecycleTests
         StringAssert.Contains(changelog, "## 1.2.0");
         StringAssert.Contains(changelog, "## 1.1.0");
         StringAssert.Contains(changelog, "## 1.0.0");
-        StringAssert.Contains(projectGuide, "当前稳定发布为 1.4.0");
+        StringAssert.Contains(projectGuide, "当前稳定发布为 1.5.0");
         StringAssert.Contains(roadmap, "`Delete` 删除当前选择");
         StringAssert.Contains(license, "MIT License");
         StringAssert.Contains(license, "Copyright (c) 2026 Oiawlm");
@@ -282,7 +282,7 @@ public sealed class LifecycleTests
         string[] expectedPreprocessorDirectives =
         [
             "#define MyAppName \"悬浮中转站\"",
-            "#define MyAppVersion \"1.4.0\"",
+            "#define MyAppVersion \"1.5.0\"",
             "#define MyAppExeName \"悬浮中转站.exe\"",
             "#define MyAppMutexName \"Local\\FloatingTransferStation.App\"",
         ];

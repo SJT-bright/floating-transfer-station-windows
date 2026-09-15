@@ -23,6 +23,40 @@ namespace FloatingTransferStation.Tests;
 public sealed class MainWindowInteractionTests
 {
     [STATestMethod]
+    public void TransparencySlider_UpdatesLiveAndPersistsAfterEditing()
+    {
+        using var directory = new TestDirectory();
+        var store = new RecordingBoardStore(directory.Root);
+        var window = CreateWindow(new BoardService(), store, WindowSettings.Default);
+        try
+        {
+            window.Show();
+            ExpandCategory(window, BoardCategory.Inbox);
+            CompleteLayout(window);
+
+            var button = (Button)window.FindName("TransparencyButton");
+            var popup = (Popup)window.FindName("TransparencyPopup");
+            var slider = (Slider)window.FindName("TransparencySlider");
+            Assert.AreEqual(WindowSettings.DefaultWindowOpacity, window.Opacity, 0.0001);
+
+            button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            Assert.IsTrue(popup.IsOpen);
+            slider.Value = 0.52;
+            Assert.AreEqual(0.52, window.Opacity, 0.0001);
+            Assert.AreEqual("52%", ((TextBlock)window.FindName("TransparencyValueText")).Text);
+
+            PumpDispatcherFor(window.Dispatcher, TimeSpan.FromMilliseconds(500));
+            Assert.IsNotNull(store.LastSavedSettings);
+            Assert.AreEqual(0.52, store.LastSavedSettings!.WindowOpacity, 0.0001);
+            popup.IsOpen = false;
+        }
+        finally
+        {
+            CloseWindow(window);
+        }
+    }
+
+    [STATestMethod]
     public void WindowsPort_AddCategoryPersistsAndReopenResetsRailScroll()
     {
         using var directory = new TestDirectory();
