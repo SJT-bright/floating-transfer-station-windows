@@ -33,6 +33,30 @@ public sealed record WindowSettings(
 
     public static WindowSettings Default { get; } = new(360, 640, 80);
 
+    public bool Equals(WindowSettings? other) => other is not null &&
+        PanelWidth == other.PanelWidth && WindowHeight == other.WindowHeight && Top == other.Top && WindowOpacity == other.WindowOpacity &&
+        TextHoverExpansionEnabled == other.TextHoverExpansionEnabled && CardActionsInContextMenuOnly == other.CardActionsInContextMenuOnly &&
+        CardCopyPinButtonsEnabled == other.CardCopyPinButtonsEnabled && CardHoverLiftEnabled == other.CardHoverLiftEnabled &&
+        CopySuccessSoundEnabled == other.CopySuccessSoundEnabled && InboxItemLimit == other.InboxItemLimit &&
+        TextBrightness == other.TextBrightness && TextOpacity == other.TextOpacity && BackgroundBrightness == other.BackgroundBrightness &&
+        BackgroundOpacity == other.BackgroundOpacity && GlassIntensity == other.GlassIntensity && FreeFloating == other.FreeFloating &&
+        DockLeft == other.DockLeft && WindowX == other.WindowX && DeletedCategoryIds.SetEquals(other.DeletedCategoryIds) &&
+        (CategoryNames?.Count ?? 0) == (other.CategoryNames?.Count ?? 0) &&
+        (CategoryNames is null || CategoryNames.All(pair => other.CategoryNames?.GetValueOrDefault(pair.Key) == pair.Value));
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(PanelWidth); hash.Add(WindowHeight); hash.Add(Top); hash.Add(WindowOpacity);
+        hash.Add(TextHoverExpansionEnabled); hash.Add(CardActionsInContextMenuOnly); hash.Add(CardCopyPinButtonsEnabled);
+        hash.Add(CardHoverLiftEnabled); hash.Add(CopySuccessSoundEnabled); hash.Add(InboxItemLimit);
+        hash.Add(TextBrightness); hash.Add(TextOpacity); hash.Add(BackgroundBrightness); hash.Add(BackgroundOpacity); hash.Add(GlassIntensity);
+        hash.Add(FreeFloating); hash.Add(DockLeft); hash.Add(WindowX);
+        foreach (var id in DeletedCategoryIds.OrderBy(id => id)) { hash.Add(id); }
+        foreach (var pair in (CategoryNames ?? []).OrderBy(pair => pair.Key)) { hash.Add(pair.Key); hash.Add(pair.Value); }
+        return hash.ToHashCode();
+    }
+
     public string CategoryName(BoardCategory category)
     {
         if (!BoardCategoryCatalog.IsDefined(category))

@@ -211,6 +211,11 @@ public partial class MainWindow : Window
 
     public void ShowStatus(string message)
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            if (!Dispatcher.HasShutdownStarted) { Dispatcher.BeginInvoke(() => ShowStatus(message)); }
+            return;
+        }
         _viewModel.ShowStatus(message);
         UpdateStatusPresentation();
         _statusTimer.Stop();

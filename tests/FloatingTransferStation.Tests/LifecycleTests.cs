@@ -395,6 +395,8 @@ public sealed class LifecycleTests
             "MyAppName",
             "MyAppExeName",
             "MyAppName",
+            "MyAppExeName",
+            "MyAppName",
             "MyAppName",
             "MyAppExeName",
             "MyAppExeName",

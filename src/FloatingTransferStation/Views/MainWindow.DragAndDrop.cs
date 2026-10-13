@@ -468,7 +468,10 @@ public partial class MainWindow : Window
     {
         try
         {
-            await _externalDropImportService.ImportAsync(payload, category, cancellationToken);
+            // Enter via Dispatcher so async collection mutations retain the window's context,
+            // including when a native drop is raised outside a running message callback.
+            var import = await Dispatcher.InvokeAsync(() => _externalDropImportService.ImportAsync(payload, category, cancellationToken));
+            await import;
         }
         catch (OperationCanceledException)
         {

@@ -140,6 +140,11 @@ public partial class MainWindow
 
     public void RefreshSearch()
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            if (!Dispatcher.HasShutdownStarted) { Dispatcher.BeginInvoke(RefreshSearch); }
+            return;
+        }
         if (SearchBox is null) { return; }
         var query = SearchBox.Text.Trim();
         if (query.Length == 0)
