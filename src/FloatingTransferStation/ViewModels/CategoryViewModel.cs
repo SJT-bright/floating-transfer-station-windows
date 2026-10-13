@@ -24,6 +24,15 @@ public sealed class CategoryViewModel : ObservableObject
     }
 
     public BoardCategory Category { get; }
+    public string Icon => Category switch
+    {
+        BoardCategory.Inbox => "\uE7C3",
+        BoardCategory.CustomerOriginal => "\uE77B",
+        BoardCategory.Reference => "\uE714",
+        BoardCategory.Prompt => "\uE8A5",
+        BoardCategory.Files => "\uE896",
+        _ => "\uE8B7"
+    };
     public string DisplayName
     {
         get => _displayName;

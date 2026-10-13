@@ -188,6 +188,10 @@ public sealed class BoardMutationService
             }
 
             var imageCleanupFailed = false;
+            foreach (var item in removed.RemovedItems.Where(item => item.Kind == BoardItemKind.File))
+            {
+                imageCleanupFailed |= !new FileAssetStore(_store.DataDirectory).TryDelete(item.FileAbsolutePath);
+            }
             foreach (var item in removed.RemovedItems.Where(
                          item => item.Kind == BoardItemKind.Image))
             {
@@ -208,8 +212,8 @@ public sealed class BoardMutationService
     {
         return await _operationGate.RunAsync(async () =>
         {
-            var removed = _board.RemoveCategory(category);
-            if (removed.Items.Count == 0)
+            var removed = _board.RemoveMany(_board.Items(category).Where(item => !item.IsPinned).Select(item => item.Id).ToArray());
+            if (removed is null)
             {
                 return false;
             }
@@ -231,7 +235,11 @@ public sealed class BoardMutationService
             }
 
             var imageCleanupFailed = false;
-            foreach (var item in removed.Items.Where(item => item.Kind == BoardItemKind.Image))
+            foreach (var item in removed.RemovedItems.Where(item => item.Kind == BoardItemKind.File))
+            {
+                imageCleanupFailed |= !new FileAssetStore(_store.DataDirectory).TryDelete(item.FileAbsolutePath);
+            }
+            foreach (var item in removed.RemovedItems.Where(item => item.Kind == BoardItemKind.Image))
             {
                 imageCleanupFailed |= !_store.TryDeleteImage(item.ImageAbsolutePath);
             }
@@ -245,6 +253,42 @@ public sealed class BoardMutationService
         }, cancellationToken);
     }
 
+    public Task<bool> RenameAsync(Guid id, string? name, CancellationToken cancellationToken = default) =>
+        _operationGate.RunAsync(async () =>
+        {
+            var item = _board.Categories.SelectMany(_board.Items).FirstOrDefault(item => item.Id == id);
+            if (item is null) { return false; }
+            var previous = item.Name;
+            item.Name = name;
+            try { await _store.SaveBoardAsync(_board.CreateSnapshot(), cancellationToken); return true; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                item.Name = previous;
+                _showStatus("名称未保存，已恢复原名称。");
+                return false;
+            }
+        }, cancellationToken);
+
+    public Task<bool> ImportFilesAsync(IReadOnlyList<string> paths, CancellationToken cancellationToken = default) =>
+        _operationGate.RunAsync(async () =>
+        {
+            var files = new FileAssetStore(_store.DataDirectory);
+            var imported = new List<BoardItem>();
+            try
+            {
+                foreach (var path in paths) { imported.Add(await files.ImportAsync(path, cancellationToken)); }
+                foreach (var item in imported.AsEnumerable().Reverse()) { _board.AddFile(item); }
+                await _store.SaveBoardAsync(_board.CreateSnapshot(), cancellationToken);
+                return true;
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or OperationCanceledException)
+            {
+                foreach (var item in imported) { _board.Remove(item.Id); files.DiscardUnpublished(item); }
+                _showStatus("文件未保存，本次已回滚，请重试。");
+                return false;
+            }
+        }, cancellationToken);
+
     public Task SaveForShutdownAsync(
         Func<Task> saveAdditionalState,
         CancellationToken cancellationToken = default) =>
@@ -252,5 +296,25 @@ public sealed class BoardMutationService
         {
             await _store.SaveBoardAsync(_board.CreateSnapshot(), cancellationToken);
             await saveAdditionalState();
+        }, cancellationToken);
+
+    public Task<bool> DeleteCategoryAsync(BoardCategory category, WindowSettings settings,
+        CancellationToken cancellationToken = default) => _operationGate.RunAsync(async () =>
+        {
+            if (category is BoardCategory.Inbox or BoardCategory.Files) { return false; }
+            try { await _store.SaveSettingsAsync(settings, cancellationToken); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                _showStatus("分类删除未保存，原分类和内容保留。"); return false;
+            }
+            _board.DeletedCategoryIds = new HashSet<BoardCategory>(settings.DeletedCategoryIds);
+            var ids = _board.Items(category).Select(item => item.Id).ToArray();
+            if (ids.Length > 0) { _board.MoveManyToCategoryTop(ids, BoardCategory.Inbox); }
+            try { await _store.SaveBoardAsync(_board.CreateSnapshot(), cancellationToken); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                _showStatus("分类已删除，内容已移回待分类，记录稍后会自动保存。");
+            }
+            return true;
         }, cancellationToken);
 }

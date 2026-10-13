@@ -26,6 +26,7 @@ public sealed class MainWindowViewModel : ObservableObject
         DefaultCaptureCategoryState? defaultCaptureCategory = null)
     {
         _defaultCaptureCategory = defaultCaptureCategory ?? new DefaultCaptureCategoryState();
+        board.EnsureCategory(BoardCategory.Files);
         foreach (var category in settings.CategoryNames?.Keys.AsEnumerable() ?? Enumerable.Empty<BoardCategory>())
         {
             if (BoardCategoryCatalog.IsDefined(category))
@@ -34,7 +35,8 @@ public sealed class MainWindowViewModel : ObservableObject
             }
         }
 
-        Categories = new ObservableCollection<CategoryViewModel>(board.Categories
+        Categories = new ObservableCollection<CategoryViewModel>(board.Categories.Where(category => category is BoardCategory.Inbox or BoardCategory.Files || !settings.DeletedCategoryIds.Contains(category))
+            .OrderBy(category => category == BoardCategory.Inbox ? -1 : category == BoardCategory.Files ? int.MaxValue : (int)category)
             .Select(category => new CategoryViewModel(
                 category,
                 board.Items(category),
@@ -46,6 +48,10 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     public ObservableCollection<CategoryViewModel> Categories { get; }
+    public IEnumerable<CategoryViewModel> ScrollCategories => Categories.Where(category => category.Category != BoardCategory.Files);
+    public CategoryViewModel FileStation => Categories.Single(category => category.Category == BoardCategory.Files);
+
+    public void RefreshCategoryList() => OnPropertyChanged(nameof(ScrollCategories));
 
     public CategoryViewModel DefaultCapturePanel
     {

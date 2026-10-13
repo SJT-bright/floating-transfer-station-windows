@@ -24,6 +24,12 @@ public sealed class DragPayloadService
             return data;
         }
 
+        if (item.Kind == BoardItemKind.File)
+        {
+            data.SetFileDropList(new StringCollection { FileExport(item) });
+            return data;
+        }
+
         var path = item.ImageAbsolutePath;
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {
@@ -31,6 +37,7 @@ public sealed class DragPayloadService
         }
 
         data.SetFileDropList(new StringCollection { path });
+        data.SetData("PNG", new MemoryStream(File.ReadAllBytes(path), writable: false), autoConvert: false);
         data.SetImage(LoadBitmap(path));
         return data;
     }
@@ -48,12 +55,12 @@ public sealed class DragPayloadService
         }
 
         string[]? imagePaths = null;
-        if (items.All(item => item.Kind == BoardItemKind.Image))
+        if (items.All(item => item.Kind == BoardItemKind.Image) || items.All(item => item.Kind == BoardItemKind.File))
         {
             imagePaths = new string[items.Count];
             for (var index = 0; index < items.Count; index++)
             {
-                var path = items[index].ImageAbsolutePath;
+                var path = items[index].Kind == BoardItemKind.File ? FileExport(items[index]) : items[index].ImageAbsolutePath;
                 if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
                 {
                     throw new FileNotFoundException("The managed image file is missing.", path);
@@ -124,5 +131,14 @@ public sealed class DragPayloadService
         bitmap.EndInit();
         bitmap.Freeze();
         return bitmap;
+    }
+
+    private static string FileExport(BoardItem item)
+    {
+        var source = item.FileAbsolutePath;
+        if (source is null || !File.Exists(source)) { throw new FileNotFoundException("文件副本已缺失。", source); }
+        var root = Directory.GetParent(Path.GetDirectoryName(source)!)?.Parent?.FullName
+            ?? throw new InvalidDataException("文件路径无效。");
+        return new FileAssetStore(root).EnsureExport(item);
     }
 }

@@ -73,6 +73,7 @@
   </Style>
 
   <Style x:Key="HeaderActionButtonStyle" TargetType="Button">
+    <Setter Property="views:StationHoverFeedback.Enabled" Value="True" />
     <Setter Property="Width" Value="30" />
     <Setter Property="Height" Value="30" />
     <Setter Property="Margin" Value="4,0,0,0" />
@@ -86,6 +87,7 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
+          <Grid Background="Transparent">
           <Border x:Name="ActionSurface"
                   Background="{TemplateBinding Background}"
                   BorderBrush="{TemplateBinding BorderBrush}"
@@ -94,6 +96,7 @@
             <ContentPresenter HorizontalAlignment="Center"
                               VerticalAlignment="Center" />
           </Border>
+          </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="ActionSurface"
@@ -118,6 +121,7 @@
   </Style>
 
   <Style x:Key="CategoryTabContainerStyle" TargetType="Border">
+    <Setter Property="views:StationHoverFeedback.Enabled" Value="True" />
     <Setter Property="Margin" Value="5" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
@@ -553,77 +557,7 @@
 
   <DataTemplate DataType="{x:Type models:BoardItem}">
     <Border Style="{StaticResource CardContainerStyle}">
-      <Grid Background="Transparent">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="{StaticResource CardOperationColumnWidth}" />
-          <ColumnDefinition Width="{StaticResource CardOperationColumnWidth}" />
-        </Grid.ColumnDefinitions>
-
-        <Grid Grid.Column="0" Background="Transparent">
-          <Image Height="120"
-                 Source="{Binding ImageAbsolutePath, Converter={StaticResource ImageThumbnailConverter}, ConverterParameter=512}"
-                 Stretch="Uniform">
-            <Image.Style>
-              <Style TargetType="Image">
-                <Setter Property="Visibility" Value="Collapsed" />
-                <Style.Triggers>
-                  <DataTrigger Binding="{Binding Kind}"
-                               Value="{x:Static models:BoardItemKind.Image}">
-                    <Setter Property="Visibility" Value="Visible" />
-                  </DataTrigger>
-                </Style.Triggers>
-              </Style>
-            </Image.Style>
-          </Image>
-
-          <TextBlock Text="{Binding Text}"
-                     FontFamily="{StaticResource InterfaceFontFamily}"
-                     FontSize="14"
-                     FontWeight="Normal"
-                     Foreground="{StaticResource PrimaryTextBrush}"
-                     TextWrapping="Wrap"
-                     TextTrimming="CharacterEllipsis"
-                     LineHeight="18"
-                     LineStackingStrategy="BlockLineHeight"
-                     MaxHeight="90">
-            <TextBlock.Style>
-              <Style TargetType="TextBlock">
-                <Setter Property="Visibility" Value="Collapsed" />
-                <Style.Triggers>
-                  <DataTrigger Binding="{Binding Kind}"
-                               Value="{x:Static models:BoardItemKind.Text}">
-                    <Setter Property="Visibility" Value="Visible" />
-                  </DataTrigger>
-                </Style.Triggers>
-              </Style>
-            </TextBlock.Style>
-          </TextBlock>
-        </Grid>
-
-        <Button Grid.Column="1"
-                Style="{StaticResource PinButtonStyle}"
-                Tag="{Binding}"
-                CommandParameter="TogglePin"
-                AutomationProperties.Name="置顶或取消置顶"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top">
-          <Viewbox Width="16" Height="16">
-            <Path Data="M8,3 L16,3 L14,8 L17,11 L12,11 L12,18 L10,20 L10,11 L5,11 L8,8 Z"
-                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                  Stretch="Uniform" />
-          </Viewbox>
-        </Button>
-
-        <Button Grid.Column="2"
-                Style="{StaticResource SelectionButtonStyle}"
-                Tag="{Binding}"
-                CommandParameter="ToggleSelection"
-                ToolTip="选择"
-                AutomationProperties.Name="选择"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top" />
-      </Grid>
+      <views:StationItemCard />
     </Border>
   </DataTemplate>
 </ResourceDictionary>

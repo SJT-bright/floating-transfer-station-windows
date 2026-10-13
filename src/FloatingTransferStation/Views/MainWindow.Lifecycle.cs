@@ -38,9 +38,21 @@ public partial class MainWindow : Window
     private void HeaderThumb_DragDelta(object sender, DragDeltaEventArgs e)
     {
         var work = CurrentWorkArea();
-        _settings = (_settings with { Top = _settings.Top + e.VerticalChange })
+        StopPanelContentAnimation();
+        var x = Math.Clamp(Left + e.HorizontalChange, work.Left, Math.Max(work.Left, work.Right - Width));
+        var leftDock = Math.Abs(x - work.Left) <= 20;
+        var rightDock = Math.Abs(work.Right - Width - x) <= 20;
+        _settings = (_settings with
+        {
+            Top = _settings.Top + e.VerticalChange,
+            WindowX = x,
+            DockLeft = leftDock,
+            FreeFloating = !leftDock && !rightDock
+        })
             .Normalize(work.Width, work.Height);
         Top = work.Top + _settings.Top;
+        Left = leftDock ? work.Left : rightDock ? work.Right - Width : x;
+        UpdateDockLayout();
     }
 
     private async void ResizeThumb_DragCompleted(object sender, DragCompletedEventArgs e)
@@ -58,7 +70,7 @@ public partial class MainWindow : Window
     private void DockRight()
     {
         var work = CurrentWorkArea();
-        Left = work.Right - ActualWidth;
+        if (!_settings.FreeFloating) { Left = _settings.DockLeft ? work.Left : work.Right - ActualWidth; }
     }
 
     private static WorkArea CurrentWorkArea()
@@ -69,6 +81,7 @@ public partial class MainWindow : Window
 
     private void ApplyPlacement(WindowPlacement placement)
     {
+        UpdateDockLayout();
         var expandsHorizontally = placement.Width > ActualWidth;
         var expandsVertically = placement.Height > ActualHeight;
         if (expandsHorizontally)
@@ -105,6 +118,16 @@ public partial class MainWindow : Window
         {
             _settingsSaveGate.Release();
         }
+    }
+
+    private void UpdateDockLayout()
+    {
+        if (WindowColumns is null) { return; }
+        WindowColumns.ColumnDefinitions[0].Width = _settings.DockLeft ? new GridLength(WindowSettings.TabWidth) : new GridLength(1, GridUnitType.Star);
+        WindowColumns.ColumnDefinitions[1].Width = _settings.DockLeft ? new GridLength(1, GridUnitType.Star) : new GridLength(WindowSettings.TabWidth);
+        Grid.SetColumn(PanelContentHost, _settings.DockLeft ? 1 : 0);
+        Grid.SetColumn(CategoryRail, _settings.DockLeft ? 0 : 1);
+        Grid.SetColumn(CollapsedCategoryHandle, _settings.DockLeft ? 0 : 1);
     }
 
     private async void MainWindow_Closing(object? sender, CancelEventArgs e)

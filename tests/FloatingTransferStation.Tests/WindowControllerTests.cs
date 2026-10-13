@@ -14,10 +14,10 @@ public sealed class WindowControllerTests
 
         foreach (var (category, expectedTop) in new[]
                  {
-                     (BoardCategory.CustomerOriginal, 80d),
-                     (BoardCategory.Reference, 240d),
-                     (BoardCategory.Prompt, 400d),
-                     (BoardCategory.Inbox, 560d)
+                     (BoardCategory.CustomerOriginal, 200d),
+                     (BoardCategory.Reference, 320d),
+                     (BoardCategory.Prompt, 440d),
+                     (BoardCategory.Inbox, 80d)
                  })
         {
             var placement = WindowController.Collapsed(workArea, settings, category);
@@ -25,7 +25,7 @@ public sealed class WindowControllerTests
             Assert.AreEqual(1920 - WindowSettings.TabWidth, placement.Left);
             Assert.AreEqual(WindowSettings.TabWidth, placement.Width);
             Assert.AreEqual(expectedTop, placement.Top);
-            Assert.AreEqual(160, placement.Height);
+            Assert.AreEqual(120, placement.Height);
         }
     }
 
@@ -66,10 +66,10 @@ public sealed class WindowControllerTests
         Assert.AreEqual(normalized.WindowHeight, rail.Height);
         Assert.AreEqual(workArea.Right, rail.Left + rail.Width);
 
-        var rowHeight = rail.Height / BoardCategoryCatalog.Ordered.Count;
-        for (var index = 0; index < BoardCategoryCatalog.Ordered.Count; index++)
+        var rowHeight = Math.Min(120, rail.Height / BoardCategoryCatalog.DisplayOrdered.Count);
+        for (var index = 0; index < BoardCategoryCatalog.DisplayOrdered.Count; index++)
         {
-            var category = BoardCategoryCatalog.Ordered[index];
+            var category = BoardCategoryCatalog.DisplayOrdered[index];
             var collapsed = WindowController.Collapsed(workArea, settings, category);
             var railRow = new WindowPlacement(
                 rail.Left,

@@ -22,16 +22,16 @@ public static class WindowController
         }
 
         var normalized = settings.Normalize(workArea.Width, workArea.Height);
-        var rowHeight = normalized.WindowHeight / BoardCategoryCatalog.Ordered.Count;
+        var rowHeight = Math.Min(120, normalized.WindowHeight / BoardCategoryCatalog.DisplayOrdered.Count);
         var rowIndex = 0;
-        while (rowIndex < BoardCategoryCatalog.Ordered.Count - 1 &&
-               BoardCategoryCatalog.Ordered[rowIndex] != defaultCategory)
+        while (rowIndex < BoardCategoryCatalog.DisplayOrdered.Count - 1 &&
+               BoardCategoryCatalog.DisplayOrdered[rowIndex] != defaultCategory)
         {
             rowIndex++;
         }
 
         return new WindowPlacement(
-            workArea.Right - WindowSettings.TabWidth,
+            normalized.DockLeft ? workArea.Left : workArea.Right - WindowSettings.TabWidth,
             workArea.Top + normalized.Top + (rowIndex * rowHeight),
             WindowSettings.TabWidth,
             rowHeight);
@@ -42,7 +42,8 @@ public static class WindowController
         var normalized = settings.Normalize(workArea.Width, workArea.Height);
         var width = WindowSettings.TabWidth + normalized.PanelWidth;
         return new WindowPlacement(
-            workArea.Right - width,
+            normalized.FreeFloating ? Math.Clamp(normalized.WindowX ?? workArea.Right - width, workArea.Left, workArea.Right - width)
+                : normalized.DockLeft ? workArea.Left : workArea.Right - width,
             workArea.Top + normalized.Top,
             width,
             normalized.WindowHeight);
@@ -52,7 +53,7 @@ public static class WindowController
     {
         var normalized = settings.Normalize(workArea.Width, workArea.Height);
         return new WindowPlacement(
-            workArea.Right - WindowSettings.TabWidth,
+            normalized.DockLeft ? workArea.Left : workArea.Right - WindowSettings.TabWidth,
             workArea.Top + normalized.Top,
             WindowSettings.TabWidth,
             normalized.WindowHeight);

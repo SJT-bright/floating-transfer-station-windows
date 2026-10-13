@@ -206,7 +206,7 @@ public sealed class LocalStoreTests
 
     [TestMethod]
     [TestCategory("Adversarial")]
-    public async Task LoadBoard_MissingOrEscapingImagesAreFiltered()
+    public async Task LoadBoard_MissingImageRecordIsRetainedButEscapingPathIsFiltered()
     {
         using var directory = new TestDirectory();
         var paths = AppPaths.ForTests(directory.Root);
@@ -239,7 +239,8 @@ public sealed class LocalStoreTests
 
         var loaded = await store.LoadBoardAsync();
 
-        Assert.AreEqual(0, loaded.Items.Count);
+        Assert.AreEqual(1, loaded.Items.Count);
+        Assert.AreEqual(Guid.Parse("00000000-0000-0000-0000-000000000001"), loaded.Items[0].Id);
     }
 
     [TestMethod]

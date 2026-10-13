@@ -68,7 +68,7 @@ public sealed class MainWindowInteractionTests
             ExpandCategory(window, BoardCategory.Inbox);
             InvokePrivateTask(window, "AddCategoryAsync");
             var vm = (MainWindowViewModel)window.DataContext;
-            Assert.AreEqual(5, vm.Categories.Count);
+            Assert.AreEqual(6, vm.Categories.Count);
             Assert.AreEqual("新分类", store.LastSavedSettings!.CategoryName((BoardCategory)1000));
             var scroll = (ScrollViewer)window.FindName("CategoryRailScroll");
             CompleteLayout(window);
@@ -175,8 +175,9 @@ public sealed class MainWindowInteractionTests
             Assert.AreEqual(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF), cardBrush.Color);
             Assert.IsNotNull(shell);
             Assert.IsNotNull(rail);
-            Assert.AreSame(shellBrush, shell.Background);
-            Assert.AreSame(railBrush, rail.Background);
+            var configured = (SolidColorBrush)shell.Background;
+            Assert.AreEqual(Color.FromArgb((byte)(WindowSettings.Default.BackgroundOpacity * 255), 255, 255, 255), configured.Color);
+            Assert.AreSame(shell.Background, rail.Background);
         }
         finally
         {
@@ -1024,8 +1025,8 @@ public sealed class MainWindowInteractionTests
         {
             window.Show();
             CompleteLayout(window);
-            var rowHeight = WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count;
-            var expectedTop = SystemParameters.WorkArea.Top + WindowSettings.Default.Top + (3 * rowHeight);
+            var rowHeight = Math.Min(120, WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count);
+            var expectedTop = SystemParameters.WorkArea.Top + WindowSettings.Default.Top;
             var handle = new System.Windows.Interop.WindowInteropHelper(window).Handle;
 
             Assert.AreEqual(rowHeight, window.Height, 0.5);
@@ -1263,15 +1264,15 @@ public sealed class MainWindowInteractionTests
             current.RaiseEvent(NewDragEventArgs(data, DragDrop.DragLeaveEvent, current));
             CompleteLayout(window);
 
-            var rowHeight = WindowSettings.Default.WindowHeight /
-                BoardCategoryCatalog.Ordered.Count;
+            var rowHeight = Math.Min(120, WindowSettings.Default.WindowHeight /
+                BoardCategoryCatalog.Ordered.Count);
             Assert.IsFalse(viewModel.IsExternalDropRailVisible);
             Assert.IsFalse(viewModel.Categories.Any(category => category.IsDropTarget));
             Assert.AreEqual(Visibility.Visible, collapsedHandle.Visibility);
             Assert.AreEqual(WindowSettings.TabWidth, window.Width, 0.5);
             Assert.AreEqual(rowHeight, window.Height, 0.5);
             Assert.AreEqual(
-                SystemParameters.WorkArea.Top + WindowSettings.Default.Top + (3 * rowHeight),
+                SystemParameters.WorkArea.Top + WindowSettings.Default.Top,
                 window.Top,
                 0.5);
         }
@@ -1324,7 +1325,7 @@ public sealed class MainWindowInteractionTests
             Assert.IsTrue(gapLeave.Handled);
             Assert.IsFalse(viewModel.IsExternalDropRailVisible);
             Assert.AreEqual(
-                WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count,
+                Math.Min(120, WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count),
                 window.Height,
                 0.5);
         }
@@ -1425,7 +1426,7 @@ public sealed class MainWindowInteractionTests
             Assert.AreEqual(0, store.SaveCount);
             Assert.AreEqual(WindowSettings.TabWidth, window.Width, 0.5);
             Assert.AreEqual(
-                WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count,
+                Math.Min(120, WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count),
                 window.Height,
                 0.5);
         }
@@ -1534,7 +1535,7 @@ public sealed class MainWindowInteractionTests
             Assert.AreEqual(DragDropEffects.None, unsupported.Effects);
             Assert.IsFalse(viewModel.IsExternalDropRailVisible);
             Assert.AreEqual(
-                WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count,
+                Math.Min(120, WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count),
                 window.Height,
                 0.5);
 
@@ -1620,7 +1621,7 @@ public sealed class MainWindowInteractionTests
             Assert.IsTrue(dragEnter.Handled);
             Assert.IsFalse(viewModel.IsExternalDropRailVisible);
             Assert.AreEqual(
-                WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count,
+                Math.Min(120, WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count),
                 window.Height,
                 0.5);
         }
@@ -1667,7 +1668,7 @@ public sealed class MainWindowInteractionTests
             Assert.IsFalse(viewModel.IsExternalDropRailVisible);
             Assert.IsFalse(viewModel.IsPanelExpanded);
             Assert.AreEqual(
-                WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count,
+                Math.Min(120, WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count),
                 window.Height,
                 0.5);
         }
@@ -1951,7 +1952,7 @@ public sealed class MainWindowInteractionTests
             Assert.IsFalse(viewModel.IsExternalDropRailVisible);
             Assert.AreEqual(WindowSettings.TabWidth, window.Width, 0.5);
             Assert.AreEqual(
-                WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count,
+                Math.Min(120, WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count),
                 window.Height,
                 0.5);
             Assert.AreEqual(0, board.Items(BoardCategory.Prompt).Count);
@@ -2006,7 +2007,7 @@ public sealed class MainWindowInteractionTests
             Assert.AreEqual(0, store.SaveCount);
             Assert.AreEqual(0, board.Items(BoardCategory.Prompt).Count);
             Assert.AreEqual(
-                WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count,
+                Math.Min(120, WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count),
                 window.Height,
                 0.5);
         }
@@ -2077,8 +2078,8 @@ public sealed class MainWindowInteractionTests
             InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
             CompleteCollapse(window);
 
-            var rowHeight = WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count;
-            var expectedTop = SystemParameters.WorkArea.Top + WindowSettings.Default.Top + rowHeight;
+            var rowHeight = Math.Min(120, WindowSettings.Default.WindowHeight / BoardCategoryCatalog.Ordered.Count);
+            var expectedTop = SystemParameters.WorkArea.Top + WindowSettings.Default.Top + 2 * rowHeight;
             Assert.AreEqual(expectedTop, window.Top, 0.5);
             Assert.AreEqual(rowHeight, window.Height, 0.5);
             Assert.AreEqual(BoardCategory.Reference, viewModel.DefaultCapturePanel.Category);
@@ -2179,36 +2180,36 @@ public sealed class MainWindowInteractionTests
             var buttons = FindDescendants<Button>(container)
                 .Where(candidate => ReferenceEquals(candidate.Tag, item))
                 .ToArray();
-            Assert.HasCount(2, buttons);
+            Assert.HasCount(3, buttons);
             var pinButton = buttons.Single(
                 candidate => Equals(candidate.CommandParameter, "TogglePin"));
             var selectionButton = buttons.Single(
                 candidate => Equals(candidate.CommandParameter, "ToggleSelection"));
             var contentGrid = pinButton.Parent as Grid;
-            var text = FindDescendants<TextBlock>(container)
+            var text = FindDescendants<TextBox>(container)
                 .Single(candidate => candidate.Text == item.Text);
 
             Assert.IsFalse(buttons.Any(
                 candidate => Equals(candidate.CommandParameter, "Delete")));
             Assert.AreEqual(30d, pinButton.Width);
-            Assert.AreEqual(30d, pinButton.Height);
-            Assert.AreEqual(0d, pinButton.Opacity);
-            Assert.IsFalse(pinButton.IsHitTestVisible);
+            Assert.AreEqual(26d, pinButton.Height);
+            Assert.AreEqual(1d, pinButton.Opacity);
+            Assert.IsTrue(pinButton.IsHitTestVisible);
             Assert.AreEqual(Visibility.Visible, pinButton.Visibility);
             Assert.IsInstanceOfType(pinButton.Content, typeof(Viewbox));
             Assert.IsNotNull(FindDescendant<System.Windows.Shapes.Path>(pinButton));
             Assert.AreEqual(30d, selectionButton.Width);
-            Assert.AreEqual(30d, selectionButton.Height);
+            Assert.AreEqual(26d, selectionButton.Height);
             Assert.IsNotNull(contentGrid);
-            Assert.AreEqual(1, Grid.GetColumn(pinButton));
-            Assert.AreEqual(2, Grid.GetColumn(selectionButton));
-            Assert.AreEqual(3, contentGrid.ColumnDefinitions.Count);
-            Assert.AreEqual(new GridLength(30), contentGrid.ColumnDefinitions[1].Width);
-            Assert.AreEqual(new GridLength(30), contentGrid.ColumnDefinitions[2].Width);
-            Assert.AreEqual(14d, text.FontSize);
-            Assert.AreEqual(18d, text.LineHeight);
-            Assert.AreEqual(90d, text.MaxHeight);
-            Assert.AreEqual(TextTrimming.CharacterEllipsis, text.TextTrimming);
+            Assert.AreEqual(2, Grid.GetColumn(pinButton));
+            Assert.AreEqual(1, Grid.GetColumn(selectionButton));
+            Assert.AreEqual(5, contentGrid.ColumnDefinitions.Count);
+            Assert.AreEqual(GridLength.Auto, contentGrid.ColumnDefinitions[1].Width);
+            Assert.AreEqual(GridLength.Auto, contentGrid.ColumnDefinitions[2].Width);
+            Assert.AreEqual(12d, text.FontSize);
+            Assert.IsTrue(text.MaxHeight <= 42);
+            Assert.AreEqual(TextWrapping.Wrap, text.TextWrapping);
+            Assert.IsTrue(text.IsReadOnly);
 
             item.IsPinned = true;
             CompleteLayout(window);
@@ -3410,8 +3411,8 @@ public sealed class MainWindowInteractionTests
             var button = FindDescendants<Button>(container)
                 .Single(candidate => Equals(candidate.CommandParameter, "ToggleSelection"));
 
-            Assert.AreEqual(0d, button.Opacity);
-            Assert.IsFalse(button.IsHitTestVisible);
+            Assert.AreEqual(1d, button.Opacity);
+            Assert.IsTrue(button.IsHitTestVisible);
             button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, button));
             CompleteLayout(window);
 
@@ -5664,6 +5665,79 @@ public sealed class MainWindowInteractionTests
         }
     }
 
+    [STATestMethod]
+    public void StationNamesUseGlobalSearchAndEditingKeepsPanelOpen()
+    {
+        using var directory = new TestDirectory();
+        var board = new BoardService();
+        var named = board.AddText("Full text must remain intact", BoardCategory.Reference); named.Name = "搜索验收";
+        board.AddText("搜索验收", BoardCategory.Inbox);
+        var window = CreateWindow(directory, board);
+        try
+        {
+            window.Show(); ExpandCategory(window, BoardCategory.Inbox); CompleteLayout(window);
+            var search = (TextBox)window.FindName("SearchBox"); var list = (ListBox)window.FindName("BoardList");
+            search.Text = "搜索验收"; CompleteLayout(window);
+            Assert.AreEqual(1, list.Items.Count); Assert.AreSame(named, list.Items[0]);
+            var card = FindDescendants<StationItemCard>(list).Single();
+            card.BeginNaming(); CompleteLayout(window);
+            Assert.IsTrue(FindDescendants<TextBox>(card).Any(editor => !editor.IsReadOnly && editor.Visibility == Visibility.Visible));
+            InvokePrivate(window, "Root_MouseLeave", window, NewMouseEventArgs());
+            InvokePrivate(window, "CollapseTimer_Tick", null, EventArgs.Empty);
+            Assert.IsTrue(((MainWindowViewModel)window.DataContext).IsPanelExpanded);
+            Assert.AreEqual("Full text must remain intact", named.Text);
+        }
+        finally { CloseWindow(window); }
+    }
+
+    [STATestMethod]
+    public void StationDiyHidesCopyPinButRetainsSelectionAndContextMenu()
+    {
+        using var directory = new TestDirectory(); var board = new BoardService(); var item = board.AddText("preview");
+        var window = CreateWindow(directory, board);
+        try
+        {
+            window.Show(); ExpandCategory(window, BoardCategory.Inbox); CompleteLayout(window);
+            PumpDispatcherUntil(window.Dispatcher, window.ApplyStationSettingsAsync(settings => settings with { CardCopyPinButtonsEnabled = false }));
+            CompleteLayout(window);
+            var card = FindDescendants<StationItemCard>((ListBox)window.FindName("BoardList")).Single();
+            var buttons = FindDescendants<Button>(card).Where(button => ReferenceEquals(button.Tag, item)).ToArray();
+            Assert.AreEqual(Visibility.Collapsed, buttons.Single(button => Equals(button.CommandParameter, "TogglePin")).Visibility);
+            Assert.AreEqual(Visibility.Collapsed, buttons.Single(button => Equals(button.CommandParameter, "CopyItem")).Visibility);
+            Assert.AreEqual(Visibility.Visible, buttons.Single(button => Equals(button.CommandParameter, "ToggleSelection")).Visibility);
+            Assert.IsNotNull(card.ContextMenu);
+        }
+        finally { CloseWindow(window); }
+    }
+
+    [STATestMethod]
+    public void StationCompactCardRenderIncludesNamesTwoLineBodyAndSelectableImage()
+    {
+        using var directory = new TestDirectory(); var board = new BoardService();
+        var text = board.AddText(string.Join("\n", Enumerable.Repeat("两行预览，正文不丢失，右键可查看全文", 20))); text.Name = "Windows 功能验收";
+        var source = Path.Combine(directory.Root, "data", "images", "fixture.png"); Directory.CreateDirectory(Path.GetDirectoryName(source)!);
+        using (var image = new Imaging.Image<Imaging.Rgba32>(8, 4, new Imaging.Rgba32(50, 140, 220, 255))) { image.Save(source); }
+        board.AddImage(Guid.NewGuid(), "images/fixture.png", source);
+        var window = CreateWindow(directory, board);
+        try
+        {
+            window.Show(); ExpandCategory(window, BoardCategory.Inbox); PumpDispatcherFor(window.Dispatcher, TimeSpan.FromMilliseconds(400)); CompleteLayout(window);
+            var list = (ListBox)window.FindName("BoardList"); var cards = FindDescendants<StationItemCard>(list).ToArray();
+            Assert.AreEqual(2, cards.Length);
+            Assert.IsTrue(cards.SelectMany(FindDescendants<TextBlock>).Any(label => label.Text == text.Name && label.FontSize == 14));
+            Assert.IsTrue(cards.SelectMany(FindDescendants<TextBox>).Where(reader => reader.IsReadOnly).All(reader => reader.MaxHeight <= 42 && reader.FontSize == 12));
+            var output = Environment.GetEnvironmentVariable("FTS_UI_ARTIFACTS");
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                var root = (FrameworkElement)window.Content;
+                var bitmap = new RenderTargetBitmap((int)Math.Ceiling(root.ActualWidth), (int)Math.Ceiling(root.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(root); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                Directory.CreateDirectory(output); using var file = File.Create(Path.Combine(output, "windows-1.6-cards.png")); encoder.Save(file);
+            }
+        }
+        finally { CloseWindow(window); }
+    }
+
     private static void CloseWindowWithoutSaving(Window window)
     {
         var allowClose = typeof(MainWindow).GetField(
@@ -5934,14 +6008,14 @@ public sealed class MainWindowInteractionTests
 
     private static void WriteAnimatedGif(string path)
     {
-        using var image = new SixLabors.ImageSharp.Image<
-            SixLabors.ImageSharp.PixelFormats.Rgba32>(
+        using var image = new FloatingTransferStation.Tests.Imaging.Image<
+            FloatingTransferStation.Tests.Imaging.Rgba32>(
             2,
             2,
-            SixLabors.ImageSharp.Color.Red);
+            FloatingTransferStation.Tests.Imaging.Color.Red);
         image.Frames.AddFrame(image.Frames.RootFrame);
         using var stream = File.Create(path);
-        image.Save(stream, new SixLabors.ImageSharp.Formats.Gif.GifEncoder());
+        image.Save(stream, new FloatingTransferStation.Tests.Imaging.GifEncoder());
     }
 
     [DllImport("user32.dll")]

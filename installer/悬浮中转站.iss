@@ -1,5 +1,5 @@
 #define MyAppName "悬浮中转站"
-#define MyAppVersion "1.5.2"
+#define MyAppVersion "1.6.0"
 #define MyAppExeName "悬浮中转站.exe"
 #define MyAppMutexName "Local\FloatingTransferStation.App"
 
@@ -32,6 +32,7 @@ Source: "..\artifacts\publish\*"; DestDir: "{app}"; Flags: ignoreversion recurse
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
+Name: "{autoprograms}\重启{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--restart"; WorkingDir: "{app}"
 Name: "{autoprograms}\卸载{#MyAppName}"; Filename: "{uninstallexe}"
 
 [Registry]

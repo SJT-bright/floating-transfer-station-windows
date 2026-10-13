@@ -20,10 +20,7 @@ public static class ImageFileSupport
 
         try
         {
-            var information = SixLabors.ImageSharp.Image.Identify(path);
-            // Some single-frame decoders omit per-frame metadata for the implicit root frame.
-            var identifiedFrameCount = Math.Max(1, information.FrameMetadataCollection.Count);
-            return identifiedFrameCount == 1;
+            return NativeImageCodec.Decode(File.ReadAllBytes(path)).FrameCount == 1;
         }
         catch
         {

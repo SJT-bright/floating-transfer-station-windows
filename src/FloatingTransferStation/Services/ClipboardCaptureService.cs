@@ -56,6 +56,11 @@ public sealed class ClipboardCaptureService
             cancellationToken);
     }
 
+    public void IgnoreSequence(uint sequence)
+    {
+        lock (_queueLock) { _lastSequence = sequence; }
+    }
+
     private bool TryAcceptSequence(uint sequenceNumber)
     {
         lock (_queueLock)
@@ -158,7 +163,7 @@ public sealed class ClipboardCaptureService
             var item = _board.AddText(text, targetCategory);
             try
             {
-                await _store.SaveBoardAsync(_board.CreateSnapshot(), cancellationToken);
+                await CaptureCommit.SaveAsync(_board, _store, targetCategory, cancellationToken);
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
@@ -223,7 +228,7 @@ public sealed class ClipboardCaptureService
                     targetCategory);
                 try
                 {
-                    await _store.SaveBoardAsync(_board.CreateSnapshot(), cancellationToken);
+                    await CaptureCommit.SaveAsync(_board, _store, targetCategory, cancellationToken);
                 }
                 catch
                 {

@@ -1,4 +1,5 @@
 using System.Windows;
+using FloatingTransferStation.Models;
 using FloatingTransferStation.Services;
 using FloatingTransferStation.Views;
 
@@ -15,6 +16,15 @@ public partial class App : Application
         {
             var executablePath = Environment.ProcessPath
                 ?? throw new InvalidOperationException("The current executable path is unavailable.");
+            if (e.Args.Contains("--restart", StringComparer.Ordinal))
+            {
+                ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                int? target = null;
+                var index = Array.IndexOf(e.Args, "--target-pid");
+                if (index >= 0 && index + 1 < e.Args.Length && int.TryParse(e.Args[index + 1], out var parsed)) { target = parsed; }
+                await StationRestart.RunAsync(executablePath, target);
+                Shutdown(); return;
+            }
             _lifecycle = AppLifecycleService.CreateDefault(executablePath);
             if (!_lifecycle.TryStart())
             {
@@ -26,6 +36,9 @@ public partial class App : Application
             var store = new LocalStore(paths, new AtomicTextWriter());
             var board = new BoardService();
             var snapshot = await store.LoadBoardAsync();
+            var settings = await store.LoadSettingsAsync();
+            board.DeletedCategoryIds = settings.DeletedCategoryIds.Where(category => category is not BoardCategory.Inbox and not BoardCategory.Files).ToHashSet();
+            foreach (var item in snapshot.Items) { item.Category = board.ResolveCaptureTarget(item.Category); }
             var normalizer = new ImageNormalizer(paths.ImagesDirectory);
             await normalizer.RepairStoredImagesOnceAsync(
                 snapshot.Items
@@ -33,7 +46,6 @@ public partial class App : Application
                     .Select(item => item.ImageAbsolutePath!)
                     .Where(path => !string.IsNullOrWhiteSpace(path)));
             board.Restore(snapshot);
-            var settings = await store.LoadSettingsAsync();
             try
             {
                 _lifecycle.EnsureStartup(executablePath);

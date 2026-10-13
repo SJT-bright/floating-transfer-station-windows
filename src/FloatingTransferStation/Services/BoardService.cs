@@ -46,6 +46,10 @@ public sealed record RemovedBoardCategory(
 
 public sealed class BoardService
 {
+    public int? InboxItemLimit { get; set; }
+    public Action? CaptureSucceeded { get; set; }
+    public HashSet<BoardCategory> DeletedCategoryIds { get; set; } = [];
+    public BoardCategory ResolveCaptureTarget(BoardCategory requested) => DeletedCategoryIds.Contains(requested) ? BoardCategory.Inbox : requested;
     private readonly Dictionary<BoardCategory, ObservableCollection<BoardItem>> _items =
         BoardCategoryCatalog.Ordered.ToDictionary(
             category => category,
@@ -64,6 +68,22 @@ public sealed class BoardService
         {
             _items.Add(category, new ObservableCollection<BoardItem>());
         }
+    }
+
+    public BoardItem AddFile(BoardItem item)
+    {
+        if (item.Kind != BoardItemKind.File) { throw new ArgumentException("File item required.", nameof(item)); }
+        InsertAtTop(item, BoardCategory.Files);
+        return item;
+    }
+
+    public RemovedBoardItems? EnforceInboxLimit(int? limit)
+    {
+        if (limit is not > 0) { return null; }
+        var normal = Items(BoardCategory.Inbox).Where(item => !item.IsPinned).ToArray();
+        var excess = normal.Length - limit.Value;
+        return excess <= 0 ? null : RemoveMany(normal.OrderBy(item => item.ArrivalSequence)
+            .ThenBy(item => item.CreatedAt).Take(excess).Select(item => item.Id).ToArray());
     }
 
     public ObservableCollection<BoardItem> Items(BoardCategory category)
@@ -170,6 +190,10 @@ public sealed class BoardService
         }
 
         var (item, sourceCategory, sourceIndex) = Find(itemId);
+        if ((item.Kind == BoardItemKind.File) != (targetCategory == BoardCategory.Files))
+        {
+            throw new ArgumentException("文件只在文件中转站内整理，文字和图片不混入文件分类。");
+        }
         var source = _items[sourceCategory];
         source.RemoveAt(sourceIndex);
 
@@ -222,6 +246,10 @@ public sealed class BoardService
         var remaining = context.SourceBefore
             .Where(item => !context.SelectedIds.Contains(item.Id))
             .ToList();
+        if (context.OrderedItems.Any(item => (item.Kind == BoardItemKind.File) != (targetCategory == BoardCategory.Files)))
+        {
+            return new BoardBatchMove(BoardMoveDisposition.Invalid, context.SourceCategory, targetCategory, context.SourceBefore, null);
+        }
         if (context.SourceCategory == targetCategory)
         {
             if (!IsSameCategoryTargetValid(context, targetIndex))
@@ -330,6 +358,7 @@ public sealed class BoardService
             }
 
             var context = ResolveBatch(itemIds);
+            if (context.OrderedItems.Any(item => (item.Kind == BoardItemKind.File) != (targetCategory == BoardCategory.Files))) { return false; }
             return context.SourceCategory != targetCategory ||
                 IsSameCategoryTargetValid(context, targetIndex);
         }
@@ -355,6 +384,7 @@ public sealed class BoardService
             }
 
             var context = ResolveBatch(itemIds);
+            if (context.OrderedItems.Any(item => (item.Kind == BoardItemKind.File) != (targetCategory == BoardCategory.Files))) { return false; }
             return context.SourceCategory != targetCategory ||
                 context.OrderedItems.Select(item => item.IsPinned).Distinct().Count() == 1;
         }
@@ -485,6 +515,11 @@ public sealed class BoardService
 
     public void Restore(BoardSnapshot snapshot)
     {
+        long nextSequence = snapshot.Items.Select(item => item.ArrivalSequence).DefaultIfEmpty().Max();
+        foreach (var item in snapshot.Items.Where(item => item.ArrivalSequence <= 0).OrderBy(item => item.CreatedAt).ThenByDescending(item => item.Order))
+        {
+            item.ArrivalSequence = ++nextSequence;
+        }
         foreach (var category in snapshot.Items.Select(item => item.Category).Distinct())
         {
             EnsureCategory(category);
@@ -520,6 +555,11 @@ public sealed class BoardService
 
     private void InsertAtTop(BoardItem item, BoardCategory category)
     {
+        if (item.ArrivalSequence <= 0)
+        {
+            item.ArrivalSequence = _items.Values.SelectMany(items => items).Select(candidate => candidate.ArrivalSequence)
+                .DefaultIfEmpty().Max() + 1;
+        }
         EnsureCategory(category);
         if (!BoardCategoryCatalog.IsDefined(category))
         {

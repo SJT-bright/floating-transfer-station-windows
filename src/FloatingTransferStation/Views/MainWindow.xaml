@@ -45,14 +45,22 @@
                 DragLeave="CategoryTab_DragLeave"
                 DragOver="CategoryTab_DragOver"
                 Drop="CategoryTab_Drop">
+          <Border.ContextMenu>
+            <ContextMenu>
+              <MenuItem Header="删除分类（内容移回待分类）" Click="DeleteCategoryMenu_Click" />
+            </ContextMenu>
+          </Border.ContextMenu>
           <Grid Background="Transparent">
             <Border Style="{StaticResource CategoryActiveLayerStyle}" />
             <Border Style="{StaticResource CategoryDropTargetLayerStyle}" />
             <Border Style="{StaticResource CategoryActiveMarkerStyle}" />
             <TextBlock Text="◎"
                        Style="{StaticResource CategoryDefaultMarkerStyle}" />
-            <TextBlock Text="{Binding DisplayName}"
-                       Style="{StaticResource CategoryLabelTextStyle}" />
+            <StackPanel VerticalAlignment="Center" IsHitTestVisible="False">
+              <TextBlock Text="{Binding Icon}" FontFamily="Segoe MDL2 Assets" FontSize="22" HorizontalAlignment="Center" Margin="0,0,0,5" />
+              <TextBlock Text="{Binding DisplayName}" Style="{StaticResource CategoryLabelTextStyle}" />
+              <TextBlock Text="{Binding Items.Count}" FontSize="11" HorizontalAlignment="Center" Margin="0,4,0,0" />
+            </StackPanel>
             <TextBox Text="{Binding DraftName, UpdateSourceTrigger=Explicit}"
                      Style="{StaticResource CategoryNameEditorStyle}"
                      TextChanged="CategoryNameEditor_TextChanged"
@@ -67,7 +75,7 @@
   <Border x:Name="WindowShell"
           Style="{StaticResource WindowShellStyle}"
           SizeChanged="WindowShell_SizeChanged">
-    <Grid Background="Transparent">
+    <Grid x:Name="WindowColumns" Background="Transparent">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="58" />
@@ -91,6 +99,7 @@
           <TranslateTransform x:Name="PanelContentTransform" />
         </Grid.RenderTransform>
         <Grid.RowDefinitions>
+          <RowDefinition Height="44" />
           <RowDefinition Height="44" />
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
@@ -139,6 +148,18 @@
                              HorizontalAlignment="Center"
                              VerticalAlignment="Center" />
                 </Button>
+
+                <Thumb Width="28" Height="28" Margin="4,0,0,0" Cursor="SizeAll"
+                       ToolTip="按住拖动窗口，靠近左右边缘自动吸附"
+                       DragDelta="HeaderThumb_DragDelta" DragCompleted="ResizeThumb_DragCompleted">
+                  <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                      <Border Background="Transparent" CornerRadius="8">
+                        <TextBlock Text="✥" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                    </ControlTemplate>
+                  </Thumb.Template>
+                </Thumb>
 
                 <Button x:Name="ResetWindowButton"
                         Style="{StaticResource HeaderActionButtonStyle}"
@@ -221,8 +242,32 @@
           </Grid>
         </Border>
 
+        <Grid Grid.Row="1" Margin="12,4">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBox x:Name="SearchBox" Padding="8,4" FontSize="13"
+                   ToolTip="搜索名称（全部分类），未命名内容不参与搜索"
+                   AutomationProperties.Name="搜索名称（全部分类）"
+                   TextChanged="SearchBox_TextChanged" />
+          <Button x:Name="ImportFilesButton" Grid.Column="1" Content="导入文件" Margin="6,0,0,0"
+                  Click="ImportFilesButton_Click">
+            <Button.Style>
+              <Style TargetType="Button">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding ActivePanel.Category}" Value="{x:Static models:BoardCategory.Files}">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Button.Style>
+          </Button>
+        </Grid>
+
         <ListBox x:Name="BoardList"
-                 Grid.Row="1"
+                 Grid.Row="2"
                  ItemsSource="{Binding ActivePanel.Items}"
                  ItemContainerStyle="{StaticResource BoardListItemStyle}"
                  Style="{StaticResource BoardListStyle}"
@@ -249,7 +294,7 @@
           </ListBox.ItemsPanel>
         </ListBox>
 
-        <Canvas Grid.Row="1"
+        <Canvas Grid.Row="2"
                 Background="Transparent"
                 IsHitTestVisible="False">
           <Border x:Name="InsertionIndicator"
@@ -265,18 +310,18 @@
         </Canvas>
 
         <Border x:Name="StatusOverlay"
-                Grid.Row="1"
+                Grid.Row="2"
                 Panel.ZIndex="2"
                 Style="{StaticResource StatusOverlayStyle}">
           <TextBlock Text="{Binding StatusText}"
                      Style="{StaticResource StatusTextStyle}" />
         </Border>
 
-        <Thumb Grid.RowSpan="2"
+        <Thumb Grid.RowSpan="3"
                Style="{StaticResource WidthResizeThumbStyle}"
                DragDelta="WidthThumb_DragDelta"
                DragCompleted="ResizeThumb_DragCompleted" />
-        <Thumb Grid.Row="1"
+        <Thumb Grid.Row="2"
                Style="{StaticResource HeightResizeThumbStyle}"
                DragDelta="HeightThumb_DragDelta"
                DragCompleted="ResizeThumb_DragCompleted" />
@@ -300,9 +345,13 @@
           </Style>
         </Border.Style>
         <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="76" />
+          </Grid.RowDefinitions>
           <ScrollViewer x:Name="CategoryRailScroll" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled"
                         ToolTip="滚轮查看更多类别">
-        <ItemsControl ItemsSource="{Binding Categories}"
+        <ItemsControl ItemsSource="{Binding ScrollCategories}"
                       ItemTemplate="{StaticResource CategoryTabTemplate}"
                       Background="Transparent">
           <ItemsControl.ItemsPanel>
@@ -317,6 +366,8 @@
           </ItemsControl.ItemContainerStyle>
         </ItemsControl>
           </ScrollViewer>
+          <ContentControl Grid.Row="1" Content="{Binding FileStation}" ContentTemplate="{StaticResource CategoryTabTemplate}"
+                          HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
           <Button Content="+" Height="24" Width="24" FontSize="18"
                   HorizontalAlignment="Right" VerticalAlignment="Top"
                   ToolTip="添加类别（双击名称可改名）" Click="AddCategory_Click" />
@@ -409,6 +460,7 @@
                        Foreground="{StaticResource SecondaryTextBrush}"
                        FontSize="11"
                        Margin="0,8,0,0" />
+            <Button Content="完整设置与交互 DIY" Margin="0,10,0,0" Click="StationSettingsButton_Click" />
           </StackPanel>
         </Border>
       </Popup>

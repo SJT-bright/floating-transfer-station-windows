@@ -2,8 +2,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using FloatingTransferStation.Models;
 using FloatingTransferStation.Services;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using FloatingTransferStation.Tests.Imaging;
+
 
 namespace FloatingTransferStation.Tests;
 
@@ -15,7 +15,7 @@ public sealed class ImageNormalizerTests
     {
         using var directory = new TestDirectory();
         var source = Path.Combine(directory.Root, "source.jpg");
-        using (var image = new Image<Rgba32>(3, 2, SixLabors.ImageSharp.Color.CornflowerBlue))
+        using (var image = new Image<Rgba32>(3, 2, FloatingTransferStation.Tests.Imaging.Color.CornflowerBlue))
         {
             await image.SaveAsJpegAsync(source);
         }
@@ -41,7 +41,7 @@ public sealed class ImageNormalizerTests
     {
         using var directory = new TestDirectory();
         var source = Path.Combine(directory.Root, $"source.{extension}");
-        using (var image = new Image<Rgba32>(2, 2, SixLabors.ImageSharp.Color.CornflowerBlue))
+        using (var image = new Image<Rgba32>(2, 2, FloatingTransferStation.Tests.Imaging.Color.CornflowerBlue))
         {
             await image.SaveAsync(source);
         }
@@ -59,7 +59,7 @@ public sealed class ImageNormalizerTests
     {
         using var directory = new TestDirectory();
         var source = Path.Combine(directory.Root, "animated.gif");
-        using (var image = new Image<Rgba32>(2, 2, SixLabors.ImageSharp.Color.Red))
+        using (var image = new Image<Rgba32>(2, 2, FloatingTransferStation.Tests.Imaging.Color.Red))
         {
             image.Frames.AddFrame(image.Frames.RootFrame);
             await image.SaveAsGifAsync(source);
@@ -232,7 +232,7 @@ public sealed class ImageNormalizerTests
         await File.WriteAllTextAsync(source, "not an image");
         var normalizer = new ImageNormalizer(paths.ImagesDirectory);
 
-        await Assert.ThrowsExactlyAsync<UnknownImageFormatException>(
+        await Assert.ThrowsExactlyAsync<InvalidDataException>(
             () => normalizer.NormalizeFileAsync(source));
 
         Assert.IsFalse(Directory.Exists(paths.ImagesDirectory) &&
@@ -247,7 +247,7 @@ public sealed class ImageNormalizerTests
         var paths = AppPaths.ForTests(directory.Root);
         Directory.CreateDirectory(paths.ImagesDirectory);
         var source = Path.Combine(directory.Root, "source.png");
-        using (var image = new Image<Rgba32>(1, 1, SixLabors.ImageSharp.Color.Red))
+        using (var image = new Image<Rgba32>(1, 1, FloatingTransferStation.Tests.Imaging.Color.Red))
         {
             await image.SaveAsPngAsync(source);
         }

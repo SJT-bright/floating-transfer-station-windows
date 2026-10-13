@@ -179,6 +179,7 @@ public partial class MainWindow : Window
         _opacitySaveTimer.Tick += OpacitySaveTimer_Tick;
         CurrentWindowOpacity = _settings.WindowOpacity;
         _settingsInitialized = true;
+        InitializeStationFeatures();
         AddHandler(
             TextCompositionManager.PreviewTextInputStartEvent,
             new TextCompositionEventHandler(CategoryNameEditor_CompositionStartedOrUpdated),
@@ -197,6 +198,13 @@ public partial class MainWindow : Window
             work,
             _settings,
             _viewModel.DefaultCapturePanel.Category));
+        if (_settings.FreeFloating)
+        {
+            _panelState.Switch(_viewModel.DefaultCapturePanel.Category);
+            _viewModel.Activate(_viewModel.DefaultCapturePanel.Category);
+            _viewModel.SetPanelExpanded(true);
+            ApplyPlacement(WindowController.Expanded(work, _settings));
+        }
         Closing += MainWindow_Closing;
         Closed += (_, _) => Application.Current?.Shutdown();
     }

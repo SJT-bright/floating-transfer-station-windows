@@ -38,6 +38,8 @@ public sealed class LocalStore : IBoardStore
     private readonly TimeProvider _timeProvider;
     private readonly SemaphoreSlim _boardWriteGate = new(1, 1);
     private readonly SemaphoreSlim _settingsWriteGate = new(1, 1);
+    private bool _boardWritesBlocked;
+    private bool _needsMigrationBackup;
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -57,6 +59,7 @@ public sealed class LocalStore : IBoardStore
     }
 
     public string ImagesDirectory => _paths.ImagesDirectory;
+    public string DataDirectory => _paths.DataDirectory;
 
     public async Task<BoardSnapshot> LoadBoardAsync(CancellationToken cancellationToken = default)
     {
@@ -64,10 +67,12 @@ public sealed class LocalStore : IBoardStore
             _paths.BoardFile,
             () => new BoardSnapshot(),
             cancellationToken);
-        if (snapshot.SchemaVersion != BoardSnapshot.CurrentSchemaVersion)
+        if (snapshot.SchemaVersion is < 1 or > BoardSnapshot.CurrentSchemaVersion)
         {
+            _boardWritesBlocked = true;
             return new BoardSnapshot();
         }
+        _needsMigrationBackup = snapshot.SchemaVersion == 1 && File.Exists(_paths.BoardFile);
 
         var clean = new BoardSnapshot();
         var seenIds = new HashSet<Guid>();
@@ -88,6 +93,20 @@ public sealed class LocalStore : IBoardStore
                 continue;
             }
 
+            if (item.Kind == BoardItemKind.File)
+            {
+                try
+                {
+                    if (item.Category == BoardCategory.Files && item.FileRelativePath is { } path)
+                    {
+                        item.FileAbsolutePath = FileAssetStore.ResolvePath(DataDirectory, path);
+                        clean.Items.Add(item);
+                    }
+                }
+                catch (InvalidDataException) { }
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(item.ImageRelativePath))
             {
                 continue;
@@ -96,11 +115,8 @@ public sealed class LocalStore : IBoardStore
             try
             {
                 var absolutePath = ResolveImagePath(item.ImageRelativePath);
-                if (File.Exists(absolutePath))
-                {
-                    item.ImageAbsolutePath = absolutePath;
-                    clean.Items.Add(item);
-                }
+                item.ImageAbsolutePath = absolutePath;
+                clean.Items.Add(item);
             }
             catch (InvalidDataException)
             {
@@ -115,9 +131,18 @@ public sealed class LocalStore : IBoardStore
         BoardSnapshot snapshot,
         CancellationToken cancellationToken = default)
     {
+        if (_boardWritesBlocked) { throw new IOException("看板版本不受支持，原始文件已保护，不能覆盖。"); }
         await _boardWriteGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (_needsMigrationBackup)
+            {
+                var backup = Path.Combine(DataDirectory, "Recovery", "schema-1-to-2-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(backup);
+                File.Copy(_paths.BoardFile, Path.Combine(backup, "board.json"));
+                if (File.Exists(_paths.SettingsFile)) { File.Copy(_paths.SettingsFile, Path.Combine(backup, "settings.json")); }
+                _needsMigrationBackup = false;
+            }
             await _writer.WriteAsync(
                 _paths.BoardFile,
                 JsonSerializer.Serialize(snapshot, _jsonOptions),

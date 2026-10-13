@@ -42,6 +42,8 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (Equals(button.CommandParameter, "CopyItem")) { await CopyItemAsync(item); return; }
+
         if (!Equals(button.CommandParameter, "TogglePin"))
         {
             return;
@@ -221,6 +223,8 @@ public partial class MainWindow : Window
         _opacitySaveTimer.Stop();
         CurrentWindowOpacity = _settings.WindowOpacity;
         ApplyPlacement(WindowController.Expanded(work, _settings));
+        ApplyStationAppearance();
+        foreach (var card in Descendants<StationItemCard>(BoardList)) { card.RefreshSettings(); }
         try
         {
             await SaveSettingsAsync();

@@ -1,8 +1,8 @@
 using System.Windows;
 using FloatingTransferStation.Models;
 using FloatingTransferStation.Services;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using FloatingTransferStation.Tests.Imaging;
+
 
 namespace FloatingTransferStation.Tests;
 
@@ -34,7 +34,7 @@ public sealed class DragPayloadServiceTests
         Assert.AreEqual(ApartmentState.STA, Thread.CurrentThread.GetApartmentState());
         using var directory = new TestDirectory();
         var path = Path.Combine(directory.Root, "image.png");
-        using (var image = new Image<Rgba32>(2, 2, SixLabors.ImageSharp.Color.Green))
+        using (var image = new Image<Rgba32>(2, 2, FloatingTransferStation.Tests.Imaging.Color.Green))
         {
             image.SaveAsPng(path);
         }
@@ -199,7 +199,7 @@ public sealed class DragPayloadServiceTests
     private static BoardItem CreateManagedImage(TestDirectory directory, string fileName)
     {
         var path = Path.Combine(directory.Root, fileName);
-        using (var image = new Image<Rgba32>(2, 2, SixLabors.ImageSharp.Color.Green))
+        using (var image = new Image<Rgba32>(2, 2, FloatingTransferStation.Tests.Imaging.Color.Green))
         {
             image.SaveAsPng(path);
         }

@@ -2,8 +2,8 @@ using System.Windows;
 using System.Windows.Media.Imaging;
 using FloatingTransferStation.Models;
 using FloatingTransferStation.Services;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using FloatingTransferStation.Tests.Imaging;
+
 
 namespace FloatingTransferStation.Tests;
 
@@ -417,7 +417,7 @@ public sealed class ExternalDropImportServiceTests
 
     private static void WriteGif(string path, int frameCount)
     {
-        using var image = new Image<Rgba32>(2, 2, SixLabors.ImageSharp.Color.Red);
+        using var image = new Image<Rgba32>(2, 2, FloatingTransferStation.Tests.Imaging.Color.Red);
         for (var frame = 1; frame < frameCount; frame++)
         {
             image.Frames.AddFrame(image.Frames.RootFrame);

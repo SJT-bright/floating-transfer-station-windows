@@ -42,10 +42,18 @@ public sealed class ExternalDropImportService
             await NormalizeAsync(payload, storedImages, cancellationToken);
             return await _operationGate.RunAsync(async () =>
             {
+                targetCategory = _board.ResolveCaptureTarget(targetCategory);
                 try
                 {
                     AddAtTopInSourceOrder(payload, storedImages, targetCategory, addedItemIds);
-                    await _store.SaveBoardAsync(_board.CreateSnapshot(), cancellationToken);
+                    var addedIds = addedItemIds.ToHashSet();
+                    var sequence = _board.Categories.SelectMany(_board.Items).Where(item => !addedIds.Contains(item.Id))
+                        .Select(item => item.ArrivalSequence).DefaultIfEmpty().Max();
+                    foreach (var item in _board.Items(targetCategory).Where(item => addedIds.Contains(item.Id)))
+                    {
+                        item.ArrivalSequence = ++sequence;
+                    }
+                    await CaptureCommit.SaveAsync(_board, _store, targetCategory, cancellationToken);
                     return true;
                 }
                 catch
@@ -120,11 +128,13 @@ public sealed class ExternalDropImportService
         for (var index = storedImages.Count - 1; index >= 0; index--)
         {
             var stored = storedImages[index];
-            addedItemIds.Add(_board.AddImage(
+            var item = _board.AddImage(
                 stored.Id,
                 stored.RelativePath,
                 stored.AbsolutePath,
-                targetCategory).Id);
+                targetCategory);
+            if (payload is ExternalDropPayload.ImageFiles { Names: { } names } && index < names.Count) { item.Name = names[index]; }
+            addedItemIds.Add(item.Id);
         }
     }
 

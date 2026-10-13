@@ -119,7 +119,7 @@ public partial class MainWindow : Window
         WindowShell.Clip = WindowShellClip.Create(
             e.NewSize.Width,
             e.NewSize.Height,
-            WindowShell.CornerRadius.TopLeft);
+            WindowShell.CornerRadius.TopLeft, _settings.DockLeft);
     }
 
     private void CategoryTab_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -161,6 +161,7 @@ public partial class MainWindow : Window
             _settings = next;
             var panel = new CategoryViewModel(category, _board.Items(category), "新分类");
             _viewModel.Categories.Add(panel);
+            _viewModel.RefreshCategoryList();
             ShowStatus("已添加新分类，双击名称可修改");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -184,6 +185,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (category.Category == BoardCategory.Files) { return; }
         _viewModel.BeginCategoryNameEdit(category);
         e.Handled = true;
         Dispatcher.BeginInvoke(
@@ -510,7 +512,7 @@ public partial class MainWindow : Window
     private void CollapseTimer_Tick(object? sender, EventArgs e)
     {
         _collapseTimer.Stop();
-        if (_isClosing || TransparencyPopup.IsOpen || IsCategoryNameEditActive() ||
+        if (_settings.FreeFloating || _isClosing || TransparencyPopup.IsOpen || IsCategoryNameEditActive() ||
             !_panelState.CanCollapse || _collapseStoryboard is not null)
         {
             return;
@@ -550,7 +552,7 @@ public partial class MainWindow : Window
         {
             AddCollapseAnimation(storyboard, PanelContentHost,
                 new PropertyPath("(0).(1)", UIElement.RenderTransformProperty, TranslateTransform.XProperty),
-                new DoubleAnimation(0d, 6d, duration) { EasingFunction = easing });
+                new DoubleAnimation(0d, _settings.DockLeft ? -6d : 6d, duration) { EasingFunction = easing });
 
             // Retract the rendered surface without resizing/reflowing the live list each frame.
             // Extend the rounded clip beyond the right edge to keep that docked edge square.
@@ -612,7 +614,7 @@ public partial class MainWindow : Window
         _collapseTransitionVersion++;
         storyboard.Remove(WindowShell);
         StopCategoryRevealAnimations();
-        WindowShell.Clip = WindowShellClip.Create(Width, Height, WindowShell.CornerRadius.TopLeft);
+        WindowShell.Clip = WindowShellClip.Create(Width, Height, WindowShell.CornerRadius.TopLeft, _settings.DockLeft);
         WindowShell.Opacity = 1d;
         WindowShell.IsHitTestVisible = true;
         if (_viewModel.IsPanelExpanded && _viewModel.ActivePanel is { } panel && !_panelState.IsExpanded)
@@ -622,7 +624,7 @@ public partial class MainWindow : Window
     }
 
     private bool IsCategoryNameEditActive() =>
-        _viewModel.Categories.Any(category => category.IsEditingName);
+        _cardInteractions.Count > 0 || _viewModel.Categories.Any(category => category.IsEditingName);
 
     private void ReconcileSurfaceAfterCategoryNameEdit()
     {
@@ -666,7 +668,7 @@ public partial class MainWindow : Window
         ApplyPlacement(placement);
         _viewModel.SetPanelExpanded(false);
         UpdateStatusPresentation();
-        WindowShell.Clip = WindowShellClip.Create(placement.Width, placement.Height, WindowShell.CornerRadius.TopLeft);
+        WindowShell.Clip = WindowShellClip.Create(placement.Width, placement.Height, WindowShell.CornerRadius.TopLeft, _settings.DockLeft);
         WindowShell.Opacity = 1d;
         WindowShell.IsHitTestVisible = true;
     }

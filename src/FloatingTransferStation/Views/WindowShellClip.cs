@@ -5,7 +5,7 @@ namespace FloatingTransferStation.Views;
 
 internal static class WindowShellClip
 {
-    public static Geometry Create(double width, double height, double radius)
+    public static Geometry Create(double width, double height, double radius, bool dockLeft = false)
     {
         if (!double.IsFinite(width) ||
             !double.IsFinite(height) ||
@@ -22,7 +22,7 @@ internal static class WindowShellClip
             boundedRadius,
             boundedRadius);
         var squareRightEdge = new RectangleGeometry(
-            new Rect(width - boundedRadius, 0d, boundedRadius, height));
+            new Rect(dockLeft ? 0 : width - boundedRadius, 0d, boundedRadius, height));
         var clip = new CombinedGeometry(
             GeometryCombineMode.Union,
             roundedShell,

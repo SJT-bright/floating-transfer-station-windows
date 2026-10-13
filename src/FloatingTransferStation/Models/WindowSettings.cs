@@ -15,6 +15,22 @@ public sealed record WindowSettings(
     public const double MaxWindowOpacity = 1.0;
     public const double DefaultWindowOpacity = 0.88;
 
+    public bool TextHoverExpansionEnabled { get; init; } = true;
+    public bool CardActionsInContextMenuOnly { get; init; } = true;
+    public bool CardCopyPinButtonsEnabled { get; init; } = true;
+    public bool CardHoverLiftEnabled { get; init; } = true;
+    public bool CopySuccessSoundEnabled { get; init; } = true;
+    public int? InboxItemLimit { get; init; }
+    public double TextBrightness { get; init; }
+    public double TextOpacity { get; init; } = 1;
+    public double BackgroundBrightness { get; init; } = 1;
+    public double BackgroundOpacity { get; init; } = 0.45;
+    public double GlassIntensity { get; init; } = 0.5;
+    public bool FreeFloating { get; init; }
+    public bool DockLeft { get; init; }
+    public double? WindowX { get; init; }
+    public HashSet<BoardCategory> DeletedCategoryIds { get; init; } = [];
+
     public static WindowSettings Default { get; } = new(360, 640, 80);
 
     public string CategoryName(BoardCategory category)
@@ -56,7 +72,21 @@ public sealed record WindowSettings(
     }
 
     public WindowSettings ResetToDefault(double workAreaWidth, double workAreaHeight) =>
-        (Default with { CategoryNames = CategoryNames is null ? null : new(CategoryNames) })
+        (this with
+        {
+            PanelWidth = Default.PanelWidth,
+            WindowHeight = Default.WindowHeight,
+            Top = Default.Top,
+            WindowOpacity = Default.WindowOpacity,
+            FreeFloating = false,
+            DockLeft = false,
+            WindowX = null,
+            TextBrightness = Default.TextBrightness,
+            TextOpacity = Default.TextOpacity,
+            BackgroundBrightness = Default.BackgroundBrightness,
+            BackgroundOpacity = Default.BackgroundOpacity,
+            GlassIntensity = Default.GlassIntensity
+        })
             .Normalize(workAreaWidth, workAreaHeight);
 
     public WindowSettings Normalize(double workAreaWidth, double workAreaHeight)
@@ -72,7 +102,14 @@ public sealed record WindowSettings(
             PanelWidth = panelWidth,
             WindowHeight = height,
             Top = top,
-            WindowOpacity = NormalizeOpacity(WindowOpacity)
+            WindowOpacity = NormalizeOpacity(WindowOpacity),
+            InboxItemLimit = InboxItemLimit is > 0 ? InboxItemLimit : null,
+            TextBrightness = NormalizeUnit(TextBrightness, 0),
+            TextOpacity = NormalizeUnit(TextOpacity, 1),
+            BackgroundBrightness = NormalizeUnit(BackgroundBrightness, 1),
+            BackgroundOpacity = NormalizeUnit(BackgroundOpacity, 0.45),
+            GlassIntensity = NormalizeUnit(GlassIntensity, 0.5),
+            WindowX = WindowX is { } x && double.IsFinite(x) ? x : null
         };
     }
 
@@ -82,4 +119,7 @@ public sealed record WindowSettings(
                 ? DefaultWindowOpacity
                 : Math.Clamp(opacity, MinWindowOpacity, MaxWindowOpacity)
             : DefaultWindowOpacity;
+
+    private static double NormalizeUnit(double value, double fallback) =>
+        double.IsFinite(value) ? Math.Clamp(value, 0, 1) : fallback;
 }

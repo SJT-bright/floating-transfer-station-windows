@@ -8,6 +8,7 @@ public sealed class BoardItem : INotifyPropertyChanged
 {
     private bool _isPinned;
     private bool _startsNormalRegion;
+    private string? _name;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -18,6 +19,28 @@ public sealed class BoardItem : INotifyPropertyChanged
     public required DateTimeOffset CreatedAt { get; init; }
     public string? Text { get; init; }
     public string? ImageRelativePath { get; init; }
+    public long ArrivalSequence { get; set; }
+    public string? FileRelativePath { get; init; }
+    public string? FileName { get; init; }
+    public long? FileSize { get; init; }
+
+    public string? Name
+    {
+        get => _name;
+        set
+        {
+            var next = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            if (_name == next) { return; }
+            SetProperty(ref _name, next);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayTitle)));
+        }
+    }
+
+    [JsonIgnore]
+    public string? FileAbsolutePath { get; set; }
+
+    [JsonIgnore]
+    public string DisplayTitle => Name ?? "添加名称";
 
     public bool IsPinned
     {
@@ -68,6 +91,12 @@ public sealed class BoardItem : INotifyPropertyChanged
         Order = Order,
         CreatedAt = CreatedAt,
         Text = Text,
+        Name = Name,
+        ArrivalSequence = ArrivalSequence,
+        FileRelativePath = FileRelativePath,
+        FileAbsolutePath = FileAbsolutePath,
+        FileName = FileName,
+        FileSize = FileSize,
         ImageRelativePath = ImageRelativePath,
         IsPinned = IsPinned,
         ImageAbsolutePath = ImageAbsolutePath

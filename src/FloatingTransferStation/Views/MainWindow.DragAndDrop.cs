@@ -20,7 +20,7 @@ public partial class MainWindow : Window
     private void BoardList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         var source = e.OriginalSource as DependencyObject;
-        if (FindAncestor<Button>(source) is not null)
+        if (FindAncestor<Button>(source) is not null || FindAncestor<TextBox>(source) is not null)
         {
             _dragItem = null;
             _dragThresholdCrossed = false;
@@ -107,6 +107,7 @@ public partial class MainWindow : Window
 
     private DataObject BuildInternalDragData(BoardItem dragItem)
     {
+        if (!string.IsNullOrWhiteSpace(SearchBox.Text)) { return _dragPayload.Build(dragItem); }
         if (_viewModel.ActivePanel is not { } panel)
         {
             throw new InvalidOperationException("No active board category is available for dragging.");
@@ -220,7 +221,7 @@ public partial class MainWindow : Window
     {
         HideInsertionIndicator();
         ClearCategoryDropTargets();
-        if (GetExternalDropPayload(e.Data) is not null)
+        if (GetExternalDropPayload(e.Data) is not null || GetFileDropPaths(e.Data) is not null)
         {
             _externalDragSurfaceVersion++;
             RevealExternalDropRail();
@@ -242,7 +243,7 @@ public partial class MainWindow : Window
             .Where(item => ids.Contains(item.Id)).ToArray();
         return items.Length == ids.Count && items.Length > 0 &&
                items.All(item => item.Category != target && item.ImageAbsolutePath is not null)
-            ? new ExternalDropPayload.ImageFiles(items.Select(item => item.ImageAbsolutePath!).ToArray())
+            ? new ExternalDropPayload.ImageFiles(items.Select(item => item.ImageAbsolutePath!).ToArray(), items.Select(item => item.Name).ToArray())
             : null;
     }
 
@@ -250,6 +251,12 @@ public partial class MainWindow : Window
     {
         HideInsertionIndicator();
         ClearCategoryDropTargets();
+        if (sender is Border { DataContext: CategoryViewModel { Category: BoardCategory.Files } fileCategory } &&
+            GetFileDropPaths(e.Data) is not null)
+        {
+            SetCategoryDropTarget(fileCategory);
+            e.Effects = DragDropEffects.Copy; e.Handled = true; return;
+        }
         if (sender is Border { DataContext: CategoryViewModel category } &&
             _dragPayload.GetInternalItemIds(e.Data) is { } itemIds &&
             _board.CanMoveManyToCategoryTop(itemIds, category.Category))
@@ -374,6 +381,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (category.Category == BoardCategory.Files && GetFileDropPaths(e.Data) is { } files)
+        {
+            e.Effects = DragDropEffects.Copy;
+            await ImportDroppedFilesAsync(files);
+            return;
+        }
+
         if (_dragPayload.GetInternalItemIds(e.Data) is { } itemIds)
         {
             ClearExternalDragPayload();
@@ -468,6 +482,11 @@ public partial class MainWindow : Window
     private void BoardList_PreviewDragOver(object sender, DragEventArgs e)
     {
         ClearCategoryDropTargets();
+        if (_viewModel.ActivePanel?.Category == BoardCategory.Files && GetFileDropPaths(e.Data) is not null)
+        {
+            e.Effects = DragDropEffects.Copy; e.Handled = true; return;
+        }
+        if (!string.IsNullOrWhiteSpace(SearchBox.Text)) { e.Effects = DragDropEffects.None; e.Handled = true; return; }
         if (_viewModel.ActivePanel is not { } panel ||
             _dragPayload.GetInternalItemIds(e.Data) is not { } itemIds)
         {
@@ -500,6 +519,11 @@ public partial class MainWindow : Window
     private async void BoardList_PreviewDrop(object sender, DragEventArgs e)
     {
         ClearDropFeedback();
+        if (_viewModel.ActivePanel?.Category == BoardCategory.Files && GetFileDropPaths(e.Data) is { } files)
+        {
+            e.Effects = DragDropEffects.Copy; e.Handled = true; await ImportDroppedFilesAsync(files); return;
+        }
+        if (!string.IsNullOrWhiteSpace(SearchBox.Text)) { e.Effects = DragDropEffects.None; e.Handled = true; return; }
         if (_viewModel.ActivePanel is not { } panel ||
             _dragPayload.GetInternalItemIds(e.Data) is not { } itemIds)
         {
@@ -630,6 +654,23 @@ public partial class MainWindow : Window
         {
             category.IsDropTarget = false;
         }
+    }
+
+    private static string[]? GetFileDropPaths(IDataObject data)
+    {
+        try
+        {
+            if (!data.GetDataPresent(DataFormats.FileDrop) || data.GetData(DataFormats.FileDrop) is not string[] paths || paths.Length == 0) { return null; }
+            return paths.All(path => File.Exists(path) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) == 0) ? paths : null;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Runtime.InteropServices.ExternalException) { return null; }
+    }
+
+    private async Task ImportDroppedFilesAsync(string[] paths)
+    {
+        var operation = _mutations.ImportFilesAsync(paths, _windowOperationCancellation.Token);
+        TrackPendingOperation(operation);
+        if (await operation) { ShowStatus($"已导入 {paths.Length} 个文件"); PlaySuccessSound(); }
     }
 
     private void ClearDropFeedback()
