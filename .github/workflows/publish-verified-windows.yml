@@ -1,0 +1,77 @@
+name: Publish verified Windows artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Windows acceptance run ID
+        required: true
+      source_sha:
+        description: Exact tested source commit SHA
+        required: true
+      release_id:
+        description: Existing draft release ID
+        required: true
+      tag:
+        description: Existing draft release tag
+        required: true
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ inputs.run_id }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      RELEASE_ID: ${{ inputs.release_id }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Validate successful native acceptance and draft identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUN_ID -notmatch '^\d+$' -or $env:RELEASE_ID -notmatch '^\d+$' -or $env:SOURCE_SHA -notmatch '^[a-f0-9]{40}$') { throw 'Invalid release inputs.' }
+          $run = gh api "repos/$env:GH_REPO/actions/runs/$env:RUN_ID" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $run.conclusion -ne 'success' -or $run.head_sha -ne $env:SOURCE_SHA -or $run.path -ne '.github/workflows/ci.yml' -or $run.event -ne 'push' -or $run.head_branch -ne 'main') { throw 'Run must be successful native acceptance of the exact main commit.' }
+          $release = gh api "repos/$env:GH_REPO/releases/$env:RELEASE_ID" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or !$release.draft -or $release.tag_name -ne $env:RELEASE_TAG -or $release.target_commitish -ne $env:SOURCE_SHA) { throw 'Draft release identity does not match the tested source.' }
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: verified
+      - name: Verify hashes, upload and publish exact tested artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $releaseRoot = Join-Path $PWD 'verified/artifacts/release'
+          $sums = Join-Path $releaseRoot 'SHA256SUMS.txt'
+          $entries = @(Get-Content -LiteralPath $sums | Where-Object { $_.Trim() })
+          if ($entries.Count -ne 2) { throw 'Exactly two checksummed release packages are required.' }
+          foreach ($line in $entries) {
+            if ($line -notmatch '^([a-f0-9]{64})  (FloatingTransferStation-(Setup-[0-9.]+\.exe|Windows-x64-[0-9.]+\.zip))$') { throw 'Unexpected checksum file entry.' }
+            $expected = $Matches[1]; $name = $Matches[2]
+            $file = Join-Path $releaseRoot $name
+            if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne $expected) { throw "Package checksum mismatch: $name" }
+            gh release upload $env:RELEASE_TAG $file --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Upload failed: $name" }
+          }
+          gh release upload $env:RELEASE_TAG $sums --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Checksum upload failed.' }
+          $release = gh api "repos/$env:GH_REPO/releases/$env:RELEASE_ID" | ConvertFrom-Json
+          foreach ($line in $entries) {
+            $null = $line -match '^([a-f0-9]{64})  (.+)$'
+            $expected = $Matches[1]; $name = $Matches[2]
+            $asset = @($release.assets | Where-Object name -eq $name)
+            if ($asset.Count -ne 1 -or $asset[0].state -ne 'uploaded' -or $asset[0].digest -ne "sha256:$expected") { throw "Remote digest mismatch: $name" }
+          }
+          gh release edit $env:RELEASE_TAG --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }
+          gh release view $env:RELEASE_TAG --json url,isDraft,assets
