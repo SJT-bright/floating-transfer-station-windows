@@ -5725,6 +5725,13 @@ public sealed class MainWindowInteractionTests
             window.Show(); ExpandCategory(window, BoardCategory.Inbox); PumpDispatcherFor(window.Dispatcher, TimeSpan.FromMilliseconds(400)); CompleteLayout(window);
             var list = (ListBox)window.FindName("BoardList"); var cards = FindDescendants<StationItemCard>(list).ToArray();
             Assert.AreEqual(2, cards.Length);
+            var textCard = cards.Single(card => ReferenceEquals(card.DataContext, text));
+            FindDescendants<Button>(textCard).Single(button => Equals(button.Content, "›")).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            InvokePrivate(window, "SetHeaderActionsVisible", true);
+            CompleteLayout(window);
+            var preview = FindDescendants<TextBox>(textCard).Single(editor => editor.IsReadOnly);
+            Assert.AreEqual(Visibility.Visible, preview.Visibility);
+            Assert.IsTrue(preview.ActualHeight > 0 && preview.ActualHeight <= 42);
             Assert.IsTrue(cards.SelectMany(FindDescendants<TextBlock>).Any(label => label.Text == text.Name && label.FontSize == 14));
             Assert.IsTrue(cards.SelectMany(FindDescendants<TextBox>).Where(reader => reader.IsReadOnly).All(reader => reader.MaxHeight <= 42 && reader.FontSize == 12));
             var output = Environment.GetEnvironmentVariable("FTS_UI_ARTIFACTS");
@@ -5735,6 +5742,33 @@ public sealed class MainWindowInteractionTests
                 bitmap.Render(root); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
                 Directory.CreateDirectory(output); using var file = File.Create(Path.Combine(output, "windows-1.6-cards.png")); encoder.Save(file);
             }
+        }
+        finally { CloseWindow(window); }
+    }
+
+    [STATestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public void DockedResizeAndClipRespectBothScreenEdges(bool dockLeft)
+    {
+        using var directory = new TestDirectory();
+        var board = new BoardService(); board.AddText("左右吸附与调整尺寸");
+        var store = new RecordingBoardStore(directory.Root);
+        var window = CreateWindow(board, store, WindowSettings.Default with { DockLeft = dockLeft });
+        try
+        {
+            window.Show(); ExpandCategory(window, BoardCategory.Inbox); CompleteLayout(window);
+            var width = window.Width;
+            InvokePrivate(window, "WidthThumb_DragDelta", window, new DragDeltaEventArgs(dockLeft ? 24 : -24, 0));
+            CompleteLayout(window);
+            Assert.AreEqual(width + 24, window.Width, 0.5);
+            var shell = (Border)window.FindName("WindowShell");
+            Assert.AreEqual(dockLeft ? 0d : 12d, shell.CornerRadius.TopLeft);
+            Assert.AreEqual(dockLeft ? 12d : 0d, shell.CornerRadius.TopRight);
+            Assert.IsNotNull(shell.Clip);
+            Assert.IsTrue(shell.Clip.FillContains(new Point(dockLeft ? 1 : shell.ActualWidth - 1, 1)));
+            Assert.IsFalse(shell.Clip.FillContains(new Point(dockLeft ? shell.ActualWidth - 1 : 1, 1)));
+            SaveVisualEvidence(window, dockLeft ? "windows-left-dock.png" : "windows-right-dock.png", "FTS_UI_ARTIFACTS");
         }
         finally { CloseWindow(window); }
     }

@@ -119,7 +119,7 @@ public partial class MainWindow : Window
         WindowShell.Clip = WindowShellClip.Create(
             e.NewSize.Width,
             e.NewSize.Height,
-            WindowShell.CornerRadius.TopLeft, _settings.DockLeft);
+            Math.Max(WindowShell.CornerRadius.TopLeft, WindowShell.CornerRadius.TopRight), _settings.DockLeft);
     }
 
     private void CategoryTab_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -555,15 +555,16 @@ public partial class MainWindow : Window
                 new DoubleAnimation(0d, _settings.DockLeft ? -6d : 6d, duration) { EasingFunction = easing });
 
             // Retract the rendered surface without resizing/reflowing the live list each frame.
-            // Extend the rounded clip beyond the right edge to keep that docked edge square.
-            var radius = WindowShell.CornerRadius.TopLeft;
-            var clip = new RectangleGeometry(new Rect(0d, 0d, Width + radius, Height), radius, radius);
+            // Extend the rounded clip beyond the docked edge so that edge stays square.
+            var radius = Math.Max(WindowShell.CornerRadius.TopLeft, WindowShell.CornerRadius.TopRight);
+            var clipX = _settings.DockLeft ? -radius : 0;
+            var clip = new RectangleGeometry(new Rect(clipX, 0d, Width + radius, Height), radius, radius);
             WindowShell.Clip = clip;
             AddCollapseAnimation(storyboard, WindowShell,
                 new PropertyPath("(0).(1)", UIElement.ClipProperty, RectangleGeometry.RectProperty),
                 new RectAnimation(
                     clip.Rect,
-                    new Rect(placement.Left - Left, placement.Top - Top,
+                    new Rect(placement.Left - Left + clipX, placement.Top - Top,
                         placement.Width + radius, placement.Height),
                     duration)
                 { EasingFunction = easing });
@@ -614,7 +615,7 @@ public partial class MainWindow : Window
         _collapseTransitionVersion++;
         storyboard.Remove(WindowShell);
         StopCategoryRevealAnimations();
-        WindowShell.Clip = WindowShellClip.Create(Width, Height, WindowShell.CornerRadius.TopLeft, _settings.DockLeft);
+        WindowShell.Clip = WindowShellClip.Create(Width, Height, Math.Max(WindowShell.CornerRadius.TopLeft, WindowShell.CornerRadius.TopRight), _settings.DockLeft);
         WindowShell.Opacity = 1d;
         WindowShell.IsHitTestVisible = true;
         if (_viewModel.IsPanelExpanded && _viewModel.ActivePanel is { } panel && !_panelState.IsExpanded)
@@ -668,7 +669,7 @@ public partial class MainWindow : Window
         ApplyPlacement(placement);
         _viewModel.SetPanelExpanded(false);
         UpdateStatusPresentation();
-        WindowShell.Clip = WindowShellClip.Create(placement.Width, placement.Height, WindowShell.CornerRadius.TopLeft, _settings.DockLeft);
+        WindowShell.Clip = WindowShellClip.Create(placement.Width, placement.Height, Math.Max(WindowShell.CornerRadius.TopLeft, WindowShell.CornerRadius.TopRight), _settings.DockLeft);
         WindowShell.Opacity = 1d;
         WindowShell.IsHitTestVisible = true;
     }

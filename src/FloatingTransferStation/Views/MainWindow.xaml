@@ -330,7 +330,7 @@
                      Style="{StaticResource StatusTextStyle}" />
         </Border>
 
-        <Thumb Grid.RowSpan="3"
+        <Thumb x:Name="WidthResizeThumb" Grid.RowSpan="3"
                Style="{StaticResource WidthResizeThumbStyle}"
                DragDelta="WidthThumb_DragDelta"
                DragCompleted="ResizeThumb_DragCompleted" />
@@ -478,7 +478,7 @@
         </Border>
       </Popup>
 
-      <Border Grid.ColumnSpan="2"
+      <Border x:Name="ShellOutline" Grid.ColumnSpan="2"
               Panel.ZIndex="10"
               Style="{StaticResource WindowShellOutlineStyle}" />
     </Grid>

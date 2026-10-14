@@ -20,7 +20,7 @@ public partial class MainWindow : Window
     private void WidthThumb_DragDelta(object sender, DragDeltaEventArgs e)
     {
         var work = CurrentWorkArea();
-        _settings = (_settings with { PanelWidth = _settings.PanelWidth - e.HorizontalChange })
+        _settings = (_settings with { PanelWidth = _settings.PanelWidth + (_settings.DockLeft ? e.HorizontalChange : -e.HorizontalChange) })
             .Normalize(work.Width, work.Height);
         Width = _settings.PanelWidth + WindowSettings.TabWidth;
         DockRight();
@@ -128,6 +128,11 @@ public partial class MainWindow : Window
         Grid.SetColumn(PanelContentHost, _settings.DockLeft ? 1 : 0);
         Grid.SetColumn(CategoryRail, _settings.DockLeft ? 0 : 1);
         Grid.SetColumn(CollapsedCategoryHandle, _settings.DockLeft ? 0 : 1);
+        WindowShell.CornerRadius = ShellOutline.CornerRadius = _settings.DockLeft ? new CornerRadius(0, 12, 12, 0) : new CornerRadius(12, 0, 0, 12);
+        ShellOutline.BorderThickness = _settings.DockLeft ? new Thickness(0, 1, 1, 1) : new Thickness(1, 1, 0, 1);
+        HeaderSurface.CornerRadius = _settings.DockLeft ? new CornerRadius(0, 11, 0, 0) : new CornerRadius(11, 0, 0, 0);
+        WidthResizeThumb.HorizontalAlignment = _settings.DockLeft ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        WindowShell.Clip = WindowShellClip.Create(Width, Height, 12, _settings.DockLeft);
     }
 
     private async void MainWindow_Closing(object? sender, CancelEventArgs e)
