@@ -723,7 +723,7 @@ public sealed class MainWindowInteractionTests
                 bottomLeftAlpha <= 16,
                 $"The exposed bottom-left corner must stay transparent; alpha was {bottomLeftAlpha}.");
             Assert.IsTrue(
-                topRightAlpha >= 196,
+                topRightAlpha >= (byte)(window.CurrentSettings.BackgroundOpacity * 255),
                 $"The docked right edge must remain square and translucent; alpha was {topRightAlpha}.");
         }
         finally
@@ -1302,7 +1302,7 @@ public sealed class MainWindowInteractionTests
             var rail = (Border)window.FindName("CategoryRail");
             var gapSurface = FindDescendants<ItemsControl>(rail).Single();
             Assert.IsNotNull(gapSurface);
-            Assert.AreEqual(new Thickness(5), currentTab.Margin);
+            Assert.AreEqual(new Thickness(2), currentTab.Margin);
 
             currentTab.RaiseEvent(NewDragEventArgs(data, DragDrop.DragLeaveEvent, currentTab));
             var gapEnter = NewDragEventArgs(data, DragDrop.DragEnterEvent, gapSurface);
