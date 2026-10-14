@@ -7,6 +7,26 @@ namespace FloatingTransferStation.Tests;
 public sealed class StationParityTests
 {
     [TestMethod]
+    [DataRow("png")]
+    [DataRow("gif")]
+    [DataRow("tiff")]
+    [DataRow("webp")]
+    public void HoverFrameMetadataRejectsAnimationsWithoutRetainingFileHandles(string extension)
+    {
+        using var directory = new TestDirectory();
+        var path = Path.Combine(directory.Root, "frame." + extension);
+        using var image = new Imaging.Image<Imaging.Rgba32>(4, 3, new Imaging.Rgba32(120, 70, 220, 255));
+        image.Save(path);
+        Assert.AreEqual(1, NativeImageCodec.ReadFrameCount(path));
+        Assert.IsTrue(ImageFileSupport.IsSupportedStaticImageFile(path));
+        image.Frames.AddFrame(image.Frames.RootFrame); image.Save(path);
+        Assert.AreEqual(2, NativeImageCodec.ReadFrameCount(path));
+        Assert.IsFalse(ImageFileSupport.IsSupportedStaticImageFile(path));
+        using var exclusive = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        Assert.IsTrue(exclusive.Length > 0);
+    }
+
+    [TestMethod]
     public async Task NamesAndMissingAssetMetadataSurviveSaveAndReload()
     {
         using var directory = new TestDirectory();

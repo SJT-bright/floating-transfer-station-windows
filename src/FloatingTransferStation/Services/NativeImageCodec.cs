@@ -9,6 +9,43 @@ public readonly record struct NativeDecodedImage(BitmapSource Bitmap, int FrameC
 
 public static class NativeImageCodec
 {
+    public static int ReadFrameCount(string path)
+    {
+        using var stream = File.OpenRead(path);
+        Span<byte> signature = stackalloc byte[12];
+        stream.ReadExactly(signature);
+        stream.Position = 0;
+        if (signature[..4].SequenceEqual("RIFF"u8) && signature[8..].SequenceEqual("WEBP"u8))
+        {
+            using var managed = new SKManagedStream(stream, disposeManagedStream: false);
+            using var codec = SKCodec.Create(managed) ?? throw new InvalidDataException("WebP 图片内容无效。");
+            return Math.Max(1, codec.FrameCount);
+        }
+        // Hover validation only reads frame metadata. Full pixel decoding stays on
+        // the background import path, not the synchronous Windows drag-over event.
+        var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
+        var count = decoder.Frames.Count;
+        if (signature[..8].SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }))
+        {
+            stream.Position = 8;
+            Span<byte> header = stackalloc byte[8];
+            while (stream.Position <= stream.Length - 12)
+            {
+                stream.ReadExactly(header);
+                var length = BinaryPrimitives.ReadUInt32BigEndian(header[..4]);
+                if (length > stream.Length - stream.Position - 4) { throw new InvalidDataException("PNG 数据块不完整。"); }
+                if (header[4..].SequenceEqual("acTL"u8) && length == 8)
+                {
+                    Span<byte> frames = stackalloc byte[4]; stream.ReadExactly(frames);
+                    var value = BinaryPrimitives.ReadUInt32BigEndian(frames);
+                    return value is > 0 and <= int.MaxValue ? (int)value : throw new InvalidDataException("PNG 帧数无效。");
+                }
+                stream.Seek(length + 4L, SeekOrigin.Current);
+            }
+        }
+        return count;
+    }
+
     public static NativeDecodedImage Decode(byte[] bytes)
     {
         try { return DecodeCore(bytes); }

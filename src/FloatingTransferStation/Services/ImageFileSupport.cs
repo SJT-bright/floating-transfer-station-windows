@@ -20,7 +20,7 @@ public static class ImageFileSupport
 
         try
         {
-            return NativeImageCodec.Decode(File.ReadAllBytes(path)).FrameCount == 1;
+            return NativeImageCodec.ReadFrameCount(path) == 1;
         }
         catch
         {
