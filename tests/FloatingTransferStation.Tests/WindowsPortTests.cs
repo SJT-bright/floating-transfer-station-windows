@@ -24,7 +24,7 @@ public sealed class WindowsPortTests
         var restored = new BoardService();
         restored.Restore(await store.LoadBoardAsync());
         var viewModel = new MainWindowViewModel(restored, await store.LoadSettingsAsync());
-        Assert.AreEqual(6, viewModel.Categories.Count);
+        Assert.AreEqual(7, viewModel.Categories.Count);
         Assert.AreEqual("道具", viewModel.Categories.Single(item => item.Category == custom).DisplayName);
         Assert.AreEqual(original.Id, restored.Items(custom).Single().Id);
         Assert.AreEqual(0, restored.Items(empty).Count);

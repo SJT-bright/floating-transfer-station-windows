@@ -174,6 +174,12 @@ public partial class MainWindow
 
     public async Task<bool> ApplyStationSettingsAsync(Func<WindowSettings, WindowSettings> update)
     {
+        var operation = await Dispatcher.InvokeAsync(() => ApplyStationSettingsCoreAsync(update));
+        return await operation;
+    }
+
+    private async Task<bool> ApplyStationSettingsCoreAsync(Func<WindowSettings, WindowSettings> update)
+    {
         await _settingsSaveGate.WaitAsync();
         try
         {

@@ -122,7 +122,7 @@
 
   <Style x:Key="CategoryTabContainerStyle" TargetType="Border">
     <Setter Property="views:StationHoverFeedback.Enabled" Value="True" />
-    <Setter Property="Margin" Value="5" />
+    <Setter Property="Margin" Value="2" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="1" />

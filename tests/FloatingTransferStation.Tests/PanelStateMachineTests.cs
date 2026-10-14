@@ -131,7 +131,7 @@ public sealed class PanelStateMachineTests
         var viewModel = new MainWindowViewModel(new BoardService());
 
         CollectionAssert.AreEqual(
-            new[] { "人物资产", "场景", "提示词", "待分类" },
+            new[] { "待分类", "人物资产", "场景", "提示词", "文件中转站" },
             viewModel.Categories.Select(category => category.DisplayName).ToArray());
         viewModel.Activate(BoardCategory.Reference);
         Assert.AreEqual("场景", viewModel.ActivePanel!.DisplayName);

@@ -663,6 +663,7 @@ public partial class MainWindow : Window
     {
         try
         {
+            if (data.GetDataPresent(DragPayloadService.InternalItemIdFormat, false) || data.GetDataPresent(DragPayloadService.InternalItemIdsFormat, false)) { return null; }
             if (!data.GetDataPresent(DataFormats.FileDrop) || data.GetData(DataFormats.FileDrop) is not string[] paths || paths.Length == 0) { return null; }
             return paths.All(path => File.Exists(path) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) == 0) ? paths : null;
         }

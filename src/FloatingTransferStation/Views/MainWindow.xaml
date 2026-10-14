@@ -251,6 +251,19 @@
                    ToolTip="搜索名称（全部分类），未命名内容不参与搜索"
                    AutomationProperties.Name="搜索名称（全部分类）"
                    TextChanged="SearchBox_TextChanged" />
+          <TextBlock Text="搜索名称（全部分类）" Margin="9,0" VerticalAlignment="Center" FontSize="13"
+                     Foreground="{StaticResource SecondaryTextBrush}" IsHitTestVisible="False">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
           <Button x:Name="ImportFilesButton" Grid.Column="1" Content="导入文件" Margin="6,0,0,0"
                   Click="ImportFilesButton_Click">
             <Button.Style>
@@ -347,7 +360,7 @@
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="*" />
-            <RowDefinition Height="76" />
+            <RowDefinition Height="96" />
           </Grid.RowDefinitions>
           <ScrollViewer x:Name="CategoryRailScroll" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled"
                         ToolTip="滚轮查看更多类别">
@@ -368,7 +381,7 @@
           </ScrollViewer>
           <ContentControl Grid.Row="1" Content="{Binding FileStation}" ContentTemplate="{StaticResource CategoryTabTemplate}"
                           HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-          <Button Content="+" Height="24" Width="24" FontSize="18"
+          <Button Content="+" Height="24" Width="24" FontSize="18" Style="{StaticResource HeaderActionButtonStyle}"
                   HorizontalAlignment="Right" VerticalAlignment="Top"
                   ToolTip="添加类别（双击名称可改名）" Click="AddCategory_Click" />
         </Grid>

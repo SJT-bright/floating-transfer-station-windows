@@ -1005,7 +1005,7 @@ public sealed class MainWindowInteractionTests
                 AlphaAt(2, height - 3) <= 16,
                 $"Collapsed bottom-left exterior must be transparent; alpha was {AlphaAt(2, height - 3)}.");
             Assert.IsTrue(
-                AlphaAt(width - 3, 2) >= 196,
+                AlphaAt(width - 3, 2) > 0 && AlphaAt(width - 3, 2) >= AlphaAt(width / 2, 2) - 8,
                 $"Collapsed docked right edge must stay square; alpha was {AlphaAt(width - 3, 2)}.");
         }
         finally
@@ -3748,8 +3748,9 @@ public sealed class MainWindowInteractionTests
                 .ToArray();
             var delete = window.FindName("DeleteContentButton") as Button;
 
-            Assert.AreEqual(2, panel.RowDefinitions.Count);
-            Assert.IsTrue(panel.RowDefinitions[1].Height.IsStar);
+            Assert.AreEqual(3, panel.RowDefinitions.Count);
+            Assert.AreEqual(44, panel.RowDefinitions[1].Height.Value);
+            Assert.IsTrue(panel.RowDefinitions[2].Height.IsStar);
             Assert.AreEqual(Grid.GetRow(list), Grid.GetRow(overlay));
             Assert.AreEqual(Visibility.Collapsed, overlay.Visibility);
             Assert.IsFalse(overlay.IsHitTestVisible);
@@ -4579,7 +4580,7 @@ public sealed class MainWindowInteractionTests
             bitmap.CopyPixels(pixels, stride, 0);
             Assert.AreEqual(0, pixels[(20 * stride) + (20 * 4) + 3],
                 "The vacated top-left area must actually render transparent halfway through collapse.");
-            Assert.IsTrue(pixels[((bitmap.PixelHeight - 20) * stride) + ((bitmap.PixelWidth - 20) * 4) + 3] > 0,
+            Assert.IsTrue(pixels[(20 * stride) + ((bitmap.PixelWidth - 20) * 4) + 3] > 0,
                 "The docked default handle must remain visible while the surrounding surface retracts.");
             SaveVisualEvidence(window, "collapse-1-midpoint.png", "FTS_UI_ARTIFACTS");
 

@@ -29,7 +29,7 @@ public sealed class StationItemCard : UserControl
         MaxHeight = 36,
         MinHeight = 18
     };
-    private readonly System.Windows.Controls.Image _image = new() { MaxHeight = 160, Stretch = Stretch.Uniform };
+    private readonly System.Windows.Controls.Image _image = new() { Height = 120, Stretch = Stretch.Uniform };
     private readonly TextBlock _fileText = new() { FontSize = 12, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _missing = new() { Text = "图片文件已缺失，请重新导入原文件", FontSize = 12, TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
     private readonly Button _select;
@@ -103,6 +103,8 @@ public sealed class StationItemCard : UserControl
         _arrow.Click += (_, _) => { _expand.Stop(); _expanded = !_expanded; RefreshBody(); };
         _title.MouseEnter += (_, _) => StartHover();
         _title.MouseLeave += (_, _) => _expand.Stop();
+        _arrow.MouseEnter += (_, _) => StartHover();
+        _arrow.MouseLeave += (_, _) => _expand.Stop();
         MouseEnter += (_, _) => { _collapse.Stop(); UpdateLift(); };
         MouseLeave += (_, _) =>
         {
@@ -113,7 +115,7 @@ public sealed class StationItemCard : UserControl
         _expand.Tick += (_, _) =>
         {
             _expand.Stop();
-            if (_title.IsMouseOver && CanAutoExpand()) { _expanded = true; RefreshBody(); }
+            if ((_title.IsMouseOver || _arrow.IsMouseOver) && CanAutoExpand()) { _expanded = true; RefreshBody(); }
         };
         _collapse.Tick += (_, _) =>
         {
@@ -187,7 +189,7 @@ public sealed class StationItemCard : UserControl
         if (_item is null) { return; }
         foreach (var button in new[] { _select, _pin, _copy }) { button.Tag = _item; }
         _titleText.Text = _item.DisplayTitle;
-        _title.ToolTip = "点击名称文字改名；在卡片空白或正文处拖动；右键显示全部操作";
+        _title.ToolTip = "点击名称文字改名；拖动卡片空白区域可排序或批量拖出；右键显示全部操作";
         _text.Text = _item.Text ?? string.Empty;
         _fileText.Text = _item.FileName ?? "文件副本已缺失";
         if (_item.Kind == BoardItemKind.File && !File.Exists(_item.FileAbsolutePath)) { _fileText.Text += "\n文件副本已缺失，请重新导入"; }
