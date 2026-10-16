@@ -16,6 +16,35 @@ namespace FloatingTransferStation.Views;
 
 public partial class MainWindow : Window
 {
+    private readonly ManualPanelCollapseGate _manualCollapseGate = new();
+    private readonly DispatcherTimer _manualCollapsePointerTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
+
+    private void ResetManualCollapseGate()
+    {
+        _manualCollapseGate.Reset();
+        _manualCollapsePointerTimer.Stop();
+    }
+
+    private void CollapsePanelButton_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (_isClosing || TransparencyPopup.IsOpen || IsCategoryNameEditActive() ||
+            _panelState.IsDragInProgress || !_panelState.IsExpanded) { return; }
+        _expandIntentTimer.Stop();
+        _collapseTimer.Stop();
+        StopPanelContentAnimation();
+        if (!_panelState.RequestManualCollapse()) { return; }
+        _manualCollapseGate.Begin(new Rect(PointToScreen(new Point(0, 0)), PointToScreen(new Point(ActualWidth, ActualHeight))));
+        _manualCollapsePointerTimer.Start();
+        SaveCurrentScrollOffset();
+        BeginCollapseAnimation();
+    }
+
+    private void ManualCollapsePointerTimer_Tick(object? sender, EventArgs e)
+    {
+        _manualCollapseGate.Observe(PointToScreen(Mouse.GetPosition(this)));
+        if (!_manualCollapseGate.SuppressesHover) { _manualCollapsePointerTimer.Stop(); }
+    }
 
     private void SaveCurrentScrollOffset()
     {
@@ -58,6 +87,7 @@ public partial class MainWindow : Window
 
     private void CategoryTab_MouseEnter(object sender, MouseEventArgs e)
     {
+        if (_manualCollapseGate.SuppressesHover) { return; }
         if (_viewModel.IsExternalDropRailVisible)
         {
             _expandIntentTimer.Stop();
@@ -133,6 +163,12 @@ public partial class MainWindow : Window
 
         // Viewing a category must never redirect automatic clipboard capture from Inbox.
         e.Handled = true;
+        if (_manualCollapseGate.SuppressesHover || !_panelState.IsExpanded)
+        {
+            ResetManualCollapseGate();
+            CategoryTab_MouseEnter(sender, e);
+            ExpandIntentTimer_Tick(this, EventArgs.Empty);
+        }
     }
 
     private void AddCategory_Click(object sender, RoutedEventArgs e)
@@ -483,6 +519,7 @@ public partial class MainWindow : Window
 
     private void Root_MouseEnter(object sender, MouseEventArgs e)
     {
+        if (_manualCollapseGate.SuppressesHover) { return; }
         StopPanelContentAnimation();
         _collapseTimer.Stop();
         _panelState.EnterSurface();
@@ -613,6 +650,7 @@ public partial class MainWindow : Window
 
         _collapseStoryboard = null;
         _collapseTransitionVersion++;
+        _panelState.CancelManualCollapseRequest();
         storyboard.Remove(WindowShell);
         StopCategoryRevealAnimations();
         WindowShell.Clip = WindowShellClip.Create(Width, Height, Math.Max(WindowShell.CornerRadius.TopLeft, WindowShell.CornerRadius.TopRight), _settings.DockLeft);

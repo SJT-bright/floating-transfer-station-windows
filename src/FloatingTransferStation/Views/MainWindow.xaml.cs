@@ -173,6 +173,8 @@ public partial class MainWindow : Window
         _expandIntentTimer.Tick += ExpandIntentTimer_Tick;
         _collapseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         _collapseTimer.Tick += CollapseTimer_Tick;
+        _manualCollapsePointerTimer.Tick += ManualCollapsePointerTimer_Tick;
+        Closed += (_, _) => ResetManualCollapseGate();
         _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
         _statusTimer.Tick += StatusTimer_Tick;
         _opacitySaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };

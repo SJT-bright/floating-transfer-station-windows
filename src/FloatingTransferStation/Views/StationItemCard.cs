@@ -171,7 +171,11 @@ public sealed class StationItemCard : UserControl
         _pin.Visibility = _copy.Visibility = settings.CardCopyPinButtonsEnabled ? Visibility.Visible : Visibility.Collapsed;
         _others.Visibility = settings.CardActionsInContextMenuOnly ? Visibility.Collapsed : Visibility.Visible;
         _others.Children.Clear();
-        if (_item?.Kind == BoardItemKind.Text) { _others.Children.Add(InlineAction("查看全文", "▤", ReadFullText)); }
+        if (_item?.Kind == BoardItemKind.Text)
+        {
+            _others.Children.Add(InlineAction("查看全文", "▤", ReadFullText));
+            _others.Children.Add(InlineAction("编辑正文", "✎", () => OpenTextDocument(true)));
+        }
         _others.Children.Add(InlineAction("移动到分类", "▱", () => { BuildMenu(); _menu.IsOpen = true; }));
         _others.Children.Add(InlineAction("删除", "×", () => RunCommand("DeleteItem")));
         var background = (byte)Math.Round(settings.BackgroundBrightness * 255);
@@ -213,6 +217,7 @@ public sealed class StationItemCard : UserControl
 
     private void ItemChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(BoardItem.Text)) { _text.Text = _item?.Text ?? string.Empty; }
         if (e.PropertyName == nameof(BoardItem.IsPinned)) { RefreshSettings(); }
         if (e.PropertyName is nameof(BoardItem.Name) or nameof(BoardItem.DisplayTitle))
         {
@@ -290,6 +295,7 @@ public sealed class StationItemCard : UserControl
         if (_item.Kind == BoardItemKind.Text)
         {
             AddMenu("查看全文", ReadFullText);
+            AddMenu("编辑正文", () => OpenTextDocument(true));
             AddMenu(_expanded ? "收起正文" : "展开正文", () => { _expanded = !_expanded; RefreshBody(); });
         }
         if (_item.Kind != BoardItemKind.File)
@@ -320,20 +326,14 @@ public sealed class StationItemCard : UserControl
         if (_owner is not null && _item is not null) { _owner.RunItemCommand(_item, command); }
     }
 
-    private void ReadFullText()
+    private void ReadFullText() => OpenTextDocument(false);
+
+    internal void OpenTextDocument(bool editing)
     {
-        if (_item is null || _owner is null || _reading) { return; }
-        var text = new TextBox
-        {
-            Text = _item.Text ?? string.Empty,
-            IsReadOnly = true,
-            TextWrapping = TextWrapping.Wrap,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            FontSize = 12,
-            Margin = new Thickness(12)
-        };
-        text.ContextMenu = ChineseEditorMenu(text);
-        var reader = new Window { Title = _item.Name ?? "查看全文", Width = 560, Height = 420, Owner = _owner, Content = text };
+        if (_item?.Kind != BoardItemKind.Text || _owner is null || _reading) { return; }
+        var item = _item;
+        var reader = new TextDocumentWindow(_owner, item,
+            (text, original) => _owner.EditItemTextAsync(item, text, original), editing);
         _reading = true; _expand.Stop(); _collapse.Stop(); UpdateHold();
         reader.Closed += (_, _) => { _reading = false; UpdateHold(); };
         reader.Show();

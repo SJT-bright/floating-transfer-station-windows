@@ -150,6 +150,7 @@ public partial class MainWindow : Window
         }
 
         _isClosing = true;
+        ResetManualCollapseGate();
         _expandIntentTimer.Stop();
         _collapseTimer.Stop();
         StopPanelContentAnimation();

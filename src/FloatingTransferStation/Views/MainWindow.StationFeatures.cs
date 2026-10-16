@@ -17,6 +17,14 @@ public partial class MainWindow
     public IReadOnlyList<BoardCategory> AvailableCategories => _viewModel.Categories.Select(category => category.Category).ToArray();
     public bool IsCardDragInProgress => _panelState.IsDragInProgress;
 
+    public Task<BoardTextEditResult> EditItemTextAsync(BoardItem item, string text, string original)
+    {
+        if (_isClosing) { return Task.FromResult(BoardTextEditResult.Failed); }
+        var task = _mutations.EditTextAsync(item.Id, text, original);
+        TrackPendingOperation(task);
+        return task;
+    }
+
     public void SetCardInteractionHeld(Guid id, bool held)
     {
         if (held)

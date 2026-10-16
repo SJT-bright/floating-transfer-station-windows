@@ -5747,6 +5747,98 @@ public sealed class MainWindowInteractionTests
     }
 
     [STATestMethod]
+    public void TextBodyEditorMenuSavesAndCancelPreservesOriginal()
+    {
+        using var directory = new TestDirectory();
+        var board = new BoardService(); var item = board.AddText("原正文\n第二行"); item.Name = "独立名称";
+        var store = new RecordingBoardStore(directory.Root);
+        var window = CreateWindow(board, store, WindowSettings.Default);
+        try
+        {
+            window.Show(); ExpandCategory(window, BoardCategory.Inbox); CompleteLayout(window);
+            var card = FindDescendants<StationItemCard>((ListBox)window.FindName("BoardList")).Single();
+            card.ContextMenu!.IsOpen = true;
+            var action = card.ContextMenu.Items.OfType<MenuItem>().Single(menu => Equals(menu.Header, "编辑正文"));
+            action.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent)); card.ContextMenu.IsOpen = false;
+            var editor = window.OwnedWindows.OfType<TextDocumentWindow>().Single();
+            Assert.IsFalse(editor.BodyEditor.IsReadOnly); Assert.IsFalse(editor.SaveButton.IsEnabled);
+            editor.BodyEditor.Text = "未保存草稿";
+            editor.CancelButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            Assert.AreEqual("原正文\n第二行", item.Text);
+            card.OpenTextDocument(true);
+            editor = window.OwnedWindows.OfType<TextDocumentWindow>().Single();
+            editor.BodyEditor.Text = " \n"; Assert.IsFalse(editor.SaveButton.IsEnabled);
+            editor.BodyEditor.Text = "修改后第一行 👩🏽‍💻\n修改后第二行";
+            CompleteLayout(window); editor.UpdateLayout();
+            SaveVisualEvidence(editor, "windows-1.6.1-body-editor.png", "FTS_UI_ARTIFACTS");
+            editor.SaveButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            PumpDispatcherFor(window.Dispatcher, TimeSpan.FromMilliseconds(100));
+            Assert.AreEqual("修改后第一行 👩🏽‍💻\n修改后第二行", item.Text);
+            Assert.AreEqual("独立名称", item.Name);
+            Assert.AreEqual(item.Text, store.LastPersistedSnapshot!.Items.Single().Text);
+            Assert.IsFalse(window.OwnedWindows.OfType<TextDocumentWindow>().Any());
+            Assert.AreEqual(item.Text, FindDescendants<TextBox>(card).Single(box => box.IsReadOnly).Text);
+        }
+        finally { CloseWindow(window); }
+    }
+
+    [STATestMethod]
+    public void TextBodyEditorSaveFailureKeepsDraftAndOriginal()
+    {
+        using var directory = new TestDirectory();
+        var board = new BoardService(); var item = board.AddText("原文");
+        var store = new RecordingBoardStore(directory.Root);
+        var window = CreateWindow(board, store, WindowSettings.Default);
+        try
+        {
+            window.Show(); ExpandCategory(window, BoardCategory.Inbox); CompleteLayout(window);
+            var card = FindDescendants<StationItemCard>((ListBox)window.FindName("BoardList")).Single();
+            card.OpenTextDocument(true);
+            var editor = window.OwnedWindows.OfType<TextDocumentWindow>().Single();
+            store.SaveFailure = new IOException("Injected body write failure");
+            editor.BodyEditor.Text = "保留草稿";
+            editor.SaveButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            PumpDispatcherFor(window.Dispatcher, TimeSpan.FromMilliseconds(100));
+            Assert.AreEqual("原文", item.Text); Assert.AreEqual("保留草稿", editor.BodyEditor.Text);
+            StringAssert.Contains(editor.ErrorLabel.Text, "草稿"); Assert.IsTrue(editor.SaveButton.IsEnabled);
+            store.SaveFailure = null; editor.Close();
+        }
+        finally { store.SaveFailure = null; CloseWindow(window); }
+    }
+
+    [STATestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void ManualCollapseButtonWorksWithPointerInsideAndReopensByClick(bool freeFloating)
+    {
+        using var directory = new TestDirectory();
+        var board = new BoardService(); board.AddText("手动收起");
+        var window = CreateWindow(board, new RecordingBoardStore(directory.Root),
+            WindowSettings.Default with { FreeFloating = freeFloating, WindowX = 150 });
+        try
+        {
+            window.Show(); ExpandCategory(window, BoardCategory.Inbox); CompleteLayout(window);
+            var state = GetPrivateField<PanelStateMachine>(window, "_panelState");
+            state.EnterSurface();
+            Assert.IsFalse(state.CanCollapse);
+            SaveVisualEvidence(window, "windows-1.6.1-collapse-button.png", "FTS_UI_ARTIFACTS");
+            ((Button)window.FindName("CollapsePanelButton")).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            GetPrivateField<DispatcherTimer>(window, "_manualCollapsePointerTimer").Stop();
+            InvokePrivate(window, "Root_MouseEnter", window, NewMouseEventArgs());
+            PumpDispatcherFor(window.Dispatcher, TimeSpan.FromMilliseconds(400));
+            Assert.IsFalse(state.IsExpanded);
+            Assert.IsFalse(((MainWindowViewModel)window.DataContext).IsPanelExpanded);
+            var vm = (MainWindowViewModel)window.DataContext;
+            var tab = FindCategoryTab(window, vm.DefaultCapturePanel);
+            InvokePrivate(window, "CategoryTab_MouseLeftButtonUp", tab,
+                NewMouseButtonEventArgs(UIElement.MouseLeftButtonUpEvent, tab));
+            CompleteLayout(window);
+            Assert.IsTrue(state.IsExpanded); Assert.IsTrue(vm.IsPanelExpanded);
+        }
+        finally { CloseWindow(window); }
+    }
+
+    [STATestMethod]
     [DataRow(true)]
     [DataRow(false)]
     public void DockedResizeAndClipRespectBothScreenEdges(bool dockLeft)

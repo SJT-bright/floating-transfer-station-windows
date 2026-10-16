@@ -8,6 +8,31 @@ namespace FloatingTransferStation.Tests;
 public sealed class PanelStateMachineTests
 {
     [TestMethod]
+    public void ManualCollapseOverridesStalePointerButNeverADrag()
+    {
+        var state = new PanelStateMachine();
+        state.Switch(BoardCategory.Prompt); state.EnterSurface();
+        Assert.IsFalse(state.TryCollapse());
+        Assert.IsTrue(state.RequestManualCollapse());
+        Assert.IsTrue(state.TryCollapse());
+        Assert.AreEqual(BoardCategory.Prompt, state.ActiveCategory);
+        state.Switch(BoardCategory.Prompt); state.EnterSurface();
+        Assert.IsFalse(state.TryCollapse());
+        state.BeginDrag(); Assert.IsFalse(state.RequestManualCollapse());
+        Assert.IsFalse(state.TryCollapse());
+    }
+
+    [TestMethod]
+    public void ManualGateWaitsForActualExitAndExplicitReopenCanResetIt()
+    {
+        var gate = new ManualPanelCollapseGate();
+        var frame = new System.Windows.Rect(-800, 100, 400, 448);
+        gate.Begin(frame); gate.Observe(new System.Windows.Point(-790, 110));
+        Assert.IsTrue(gate.SuppressesHover);
+        gate.Observe(new System.Windows.Point(-801, 110)); Assert.IsFalse(gate.SuppressesHover);
+        gate.Begin(frame); gate.Reset(); Assert.IsFalse(gate.SuppressesHover);
+    }
+    [TestMethod]
     public void Switch_ThenCollapse_KeepsActiveCategoryWhileClosingPanel()
     {
         var state = new PanelStateMachine();

@@ -119,9 +119,15 @@
                    Style="{StaticResource HeaderThumbStyle}"
                    DragDelta="HeaderThumb_DragDelta"
                    DragCompleted="ResizeThumb_DragCompleted" />
+            <Button x:Name="CollapsePanelButton" Grid.Column="0" Width="24" Height="24"
+                    HorizontalAlignment="Left" Margin="6,0,0,0" Content="−" FontSize="13"
+                    Style="{StaticResource HeaderActionButtonStyle}"
+                    ToolTip="收起悬浮窗；点击收起标签可展开" AutomationProperties.Name="收起悬浮窗"
+                    Click="CollapsePanelButton_Click" />
             <TextBlock Text="{Binding ActivePanel.DisplayName}"
+                       TextTrimming="CharacterEllipsis"
                        Grid.Column="0"
-                       Margin="14,0"
+                       Margin="36,0,4,0"
                        Style="{StaticResource HeaderTitleStyle}" />
 
             <Border x:Name="HeaderActionRegion"

@@ -31,7 +31,8 @@ public static class WindowController
         }
 
         return new WindowPlacement(
-            normalized.DockLeft ? workArea.Left : workArea.Right - WindowSettings.TabWidth,
+            normalized.FreeFloating ? Expanded(workArea, normalized).Left + normalized.PanelWidth
+                : normalized.DockLeft ? workArea.Left : workArea.Right - WindowSettings.TabWidth,
             workArea.Top + normalized.Top + (rowIndex * rowHeight),
             WindowSettings.TabWidth,
             rowHeight);

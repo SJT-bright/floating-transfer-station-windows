@@ -9,6 +9,7 @@ public sealed class BoardItem : INotifyPropertyChanged
     private bool _isPinned;
     private bool _startsNormalRegion;
     private string? _name;
+    private string? _text;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -17,7 +18,11 @@ public sealed class BoardItem : INotifyPropertyChanged
     public required BoardCategory Category { get; set; }
     public required int Order { get; set; }
     public required DateTimeOffset CreatedAt { get; init; }
-    public string? Text { get; init; }
+    public string? Text
+    {
+        get => _text;
+        set => SetProperty(ref _text, value);
+    }
     public string? ImageRelativePath { get; init; }
     public long ArrivalSequence { get; set; }
     public string? FileRelativePath { get; init; }

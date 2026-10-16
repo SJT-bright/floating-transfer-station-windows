@@ -18,6 +18,8 @@ public enum BoardPinResult
     Failed
 }
 
+public enum BoardTextEditResult { Saved, Unchanged, Invalid, Conflict, Failed }
+
 public sealed class BoardMutationService
 {
     private readonly BoardService _board;
@@ -252,6 +254,35 @@ public sealed class BoardMutationService
             return true;
         }, cancellationToken);
     }
+
+    public Task<BoardTextEditResult> EditTextAsync(Guid id, string text, string expectedOriginal,
+        CancellationToken cancellationToken = default) => _operationGate.RunAsync(async () =>
+        {
+            var item = _board.Categories.SelectMany(_board.Items).FirstOrDefault(item => item.Id == id);
+            if (item?.Kind != BoardItemKind.Text || string.IsNullOrWhiteSpace(text))
+            {
+                _showStatus("正文为空或记录已不存在，未保存修改。");
+                return BoardTextEditResult.Invalid;
+            }
+            if (item.Text == text) { return BoardTextEditResult.Unchanged; }
+            if (item.Text != expectedOriginal)
+            {
+                _showStatus("正文已被其他操作修改，请重新打开后编辑；草稿仍保留。");
+                return BoardTextEditResult.Conflict;
+            }
+            // Persist a detached snapshot before publishing the new body to cards.
+            var snapshot = _board.CreateSnapshot();
+            snapshot.Items.Single(candidate => candidate.Id == id).Text = text;
+            try { await _store.SaveBoardAsync(snapshot, cancellationToken); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or OperationCanceledException)
+            {
+                _showStatus("正文未保存，原文和草稿已保留，请重试。");
+                return BoardTextEditResult.Failed;
+            }
+            item.Text = text;
+            _showStatus("正文已保存。");
+            return BoardTextEditResult.Saved;
+        }, cancellationToken);
 
     public Task<bool> RenameAsync(Guid id, string? name, CancellationToken cancellationToken = default) =>
         _operationGate.RunAsync(async () =>

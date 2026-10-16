@@ -6,12 +6,23 @@ public sealed class PanelStateMachine
 {
     private bool _pointerInside;
     private bool _dragInProgress;
+    private bool _manualCollapseRequested;
 
     public BoardCategory? ActiveCategory { get; private set; }
     public BoardCategory? PendingCategory { get; private set; }
     public bool IsDragInProgress => _dragInProgress;
     public bool IsExpanded { get; private set; }
-    public bool CanCollapse => IsExpanded && !_pointerInside && !_dragInProgress;
+    public bool CanCollapse => IsExpanded && (!_pointerInside || _manualCollapseRequested) && !_dragInProgress;
+
+    public bool RequestManualCollapse()
+    {
+        if (!IsExpanded || _dragInProgress) { return false; }
+        _manualCollapseRequested = true;
+        PendingCategory = null;
+        return true;
+    }
+
+    public void CancelManualCollapseRequest() => _manualCollapseRequested = false;
 
     public void BeginHover(BoardCategory category)
     {
@@ -48,6 +59,7 @@ public sealed class PanelStateMachine
     public void Switch(BoardCategory category)
     {
         Validate(category);
+        _manualCollapseRequested = false;
         ActiveCategory = category;
         PendingCategory = null;
         IsExpanded = true;
@@ -61,7 +73,7 @@ public sealed class PanelStateMachine
         PendingCategory = null;
     }
 
-    public void BeginDrag() => _dragInProgress = true;
+    public void BeginDrag() { _manualCollapseRequested = false; _dragInProgress = true; }
 
     public void EndDrag() => _dragInProgress = false;
 
@@ -73,6 +85,7 @@ public sealed class PanelStateMachine
         }
 
         IsExpanded = false;
+        _manualCollapseRequested = false;
         return true;
     }
 
