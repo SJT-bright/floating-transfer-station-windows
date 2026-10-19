@@ -41,7 +41,7 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $run.conclusion -ne 'success' -or $run.head_sha -ne $env:SOURCE_SHA -or $run.path -ne '.github/workflows/ci.yml' -or $run.event -ne 'push' -or $run.head_branch -ne 'main') { throw 'Run must be successful native acceptance of the exact main commit.' }
           $release = gh api "repos/$env:GH_REPO/releases/$env:RELEASE_ID" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or !$release.draft -or $release.tag_name -ne $env:RELEASE_TAG -or $release.target_commitish -ne $env:SOURCE_SHA) { throw 'Draft release identity does not match the tested source.' }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: windows-build
           run-id: ${{ inputs.run_id }}
