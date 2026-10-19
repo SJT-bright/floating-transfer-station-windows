@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
-    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.1" GeneratePathProperty="true" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="4.153.1" GeneratePathProperty="true" />
     <Resource Include="Resources\GlassTap.wav" />
     <None Include="..\..\THIRD-PARTY-NOTICES.txt" Link="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="$(PkgSkiaSharp_NativeAssets_Win32)\THIRD-PARTY-NOTICES.txt" Link="licenses\SkiaNative-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
